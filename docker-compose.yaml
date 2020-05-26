@@ -1,0 +1,37 @@
+version: '3'
+
+services:
+  api:
+    build: ./
+    #image: golang
+    #volumes:
+    #  - ./src:/go/src/
+    #working_dir: /go/src/
+    ports:
+      - "6551:6551"
+    depends_on:
+    #  - redis
+      - mongo
+    container_name: gtemplate-dev-api
+    #entrypoint: go run main.go
+  mongo:
+    image: mongo:4.2.6
+    ports:
+      - "27017:27017"
+    volumes:
+      - ./data/mongo:/data/db
+    environment:
+      - MONGO_INITDB_ROOT_USERNAME=test
+      - MONGO_INITDB_ROOT_PASSWORD=password
+      - MONGO_INITDB_DATABASE=gtest
+    container_name: gtemplate-dev-mongo
+  nginx:
+    image: nginx
+    ports:
+      - 80:80
+    volumes:
+      - ./build:/usr/share/nginx/html
+      - ./nginx.conf:/etc/nginx/conf.d/default.conf
+    links:
+      - api:api
+    container_name: gtemplate-dev-nginx
