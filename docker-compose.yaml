@@ -2,18 +2,18 @@ version: '3'
 
 services:
   api:
-    build: ./
-    #image: golang
-    #volumes:
-    #  - ./src:/go/src/
-    #working_dir: /go/src/
+    #build: ./
+    image: golang:1.14
+    volumes:
+      - ./src:/go/src/
+    working_dir: /go/src/
     ports:
       - "6551:6551"
     depends_on:
     #  - redis
       - mongo
     container_name: gtemplate-dev-api
-    #entrypoint: go run main.go
+    entrypoint: go run main.go
   mongo:
     image: mongo:4.2.6
     ports:
