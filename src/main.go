@@ -3,8 +3,7 @@ package main
 import (
 	"fmt"
 	"net/http"
-	"template2/test_app/gq"
-	//"template2/test_app/config"
+	"template2/test_app/graphql_api"
 )
 
 func helloWorld(w http.ResponseWriter, r *http.Request) {
@@ -13,7 +12,8 @@ func helloWorld(w http.ResponseWriter, r *http.Request) {
 
 func main() {
 	fmt.Println("hello world")
-	http.HandleFunc("/", helloWorld)
-	http.HandleFunc("/graphql", gq.Graphql)
+	//defer config.DB.Disconnect()
+	//http.HandleFunc("/api/hello", helloWorld)
+	http.HandleFunc("/api/graphql", graphql_api.Graphql)
 	http.ListenAndServe(":6551", nil)
 }

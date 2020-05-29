@@ -1,4 +1,4 @@
-package gq
+package graphql_api
 
 import (
 	"context"
@@ -18,16 +18,28 @@ var (
 				Description: "health check",
 				Resolve:     getHealth,
 			},
+			"user": &graphql.Field{
+				Args:        userArgs,
+				Type:        userType,
+				Description: "get user info",
+				Resolve:     getUser,
+			},
 		},
 	})
 
 	mutation = graphql.NewObject(graphql.ObjectConfig{
-		Name: "query",
+		Name: "mutation",
 		Fields: graphql.Fields{
 			"health": &graphql.Field{
 				Type:        graphql.String,
 				Description: "health check",
 				Resolve:     getHealth,
+			},
+			"createUser": &graphql.Field{
+				Args:        userArgs,
+				Type:        graphql.Boolean,
+				Description: "create user",
+				Resolve:     createUser,
 			},
 		},
 	})
