@@ -4,10 +4,12 @@ import (
 	"context"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
+	"go.mongodb.org/mongo-driver/mongo"
 	"log"
+	"template2/lib/db"
+	"template2/lib/util"
 	"template2/test_app/config"
 	"template2/test_app/constant"
-	"time"
 )
 
 type UserInfo struct {
@@ -21,17 +23,43 @@ type UserInfo struct {
 }
 
 var (
-	DefaultSelector = bson.M{}
+//DefaultSelector = bson.M{}
 )
 
 /* API used Graph QL */
-func GetUser(username string) (user UserInfo, err error) {
+func CreateUser(user *UserInfo) error {
+	/*query := bson.M{
+		"username": user.Username,
+	}*/
+
+	userInfo := UserInfo{
+		UID:        primitive.NewObjectID(),
+		Nickname:   user.Nickname,
+		Username:   user.Username,
+		Email:      user.Email,
+		CreateTime: util.GetNowTimestamp(),
+		UpdateTime: util.GetNowTimestamp(),
+	}
+	dbClient := config.MongoDBClient
+
+	return DbTxInsertUser(dbClient, &userInfo)
+	/*user, err := DbOpFindUser(dbClient, &query)
+	if err != nil {
+		insertedID, err := DbOpInsertUser(dbClient, &userInfo)
+		log.Println("Inserted a single document: ", insertedID)
+		return err
+	}
+
+	return constant.ErrAccountExist*/
+}
+
+func GetUser(username string) (user *UserInfo, err error) {
 	query := bson.M{
 		"username": username,
 	}
-	var userptr UserInfo
-	userptr, err = dbTxFindUser(query, DefaultSelector)
-	user = userptr
+	dbClient := config.MongoDBClient
+
+	user, err = DbOpFindUser(context.Background(), dbClient, &query)
 
 	if err != nil {
 		return user, constant.ErrAccountNotExist
@@ -39,78 +67,39 @@ func GetUser(username string) (user UserInfo, err error) {
 	return user, err
 }
 
-func CreateUser(user *UserInfo) error {
-	data := UserInfo{
-		UID:        primitive.NewObjectID(),
-		Nickname:   user.Nickname,
-		Username:   user.Username,
-		Email:      user.Email,
-		CreateTime: time.Now().Unix(), //util.GetNowTimestamp(),
-		UpdateTime: time.Now().Unix(), //util.GetNowTimestamp(),
+/* Database Transaction */
+func DbTxInsertUser(client *db.MongoDBClient, userInfo *UserInfo) error {
+	query := bson.M{
+		"username": userInfo.Username,
 	}
-	log.Println(user.Nickname)
-	dbClient := config.MongoDBClient
-	table := dbClient.GetTable(constant.TableUser)
 
-	insertResult, err := table.InsertOne(context.TODO(), data)
+	_, err := client.WithTransaction(func(sessCtx mongo.SessionContext) (interface{}, error) {
+		_, err := DbOpFindUser(sessCtx, client, &query)
+		if err != nil {
+			insertedID, err := DbOpInsertUser(sessCtx, client, &userInfo)
+			log.Println("Inserted a single document: ", insertedID)
+			log.Println(err)
+			log.Println("==========")
+			//result = insertedID
+			return insertedID, err
+		}
+		return nil, constant.ErrAccountExist
+	})
 
-	log.Println("Inserted a single document: ", insertResult.InsertedID)
-	//err := insertManagers(Manager)
 	return err
 }
 
-/* Database Transaction */
-func dbTxFindUser(query, selectField interface{}) (user UserInfo, err error) {
-	//data := UserInfo{}
-	err = nil
-
-	//cntrl := db.NewCopyMgoDBCntlr()
-	//defer cntrl.Close()
-
-	user, err = dbOpFindUser(query, selectField)
-	if err != nil {
-		log.Println(err)
-		return UserInfo{}, constant.ErrAccountNotExist
-	}
+/* Database Operation: Insert, Deletion, Update, Select */
+func DbOpFindUser(ctx context.Context, client *db.MongoDBClient, filter interface{}) (user *UserInfo, err error) {
+	user = &UserInfo{}
+	err = client.FindOne(ctx, constant.TableUser, filter, user)
 	return user, err
 }
 
-/* Database Operation: Insert, Deletion, Update, Select */
-func dbOpFindUser(query, selectField interface{}) (user UserInfo, err error) {
-	user = UserInfo{}
-
-	dbClient := config.MongoDBClient
-	log.Println(dbClient)
-	//dbClient, err := db.NewMongoDB()
-	//log.Println(dbClient)
-	//dbClient.UseDatabase("gtest")
-	//
-	table := dbClient.GetTable(constant.TableUser)
-
-	/*ctx, cancel := context.WithTimeout(context.Background(), 20*time.Second)
-	//ctx := context.TODO()
-	defer cancel()
-	clientOption := options.Client().ApplyURI("mongodb://test:password@localhost:27017/admin")
-	client, err := mongo.Connect(ctx, clientOption)
+func DbOpInsertUser(ctx context.Context, client *db.MongoDBClient, userInfo interface{}) (uid interface{}, err error) {
+	result, err := client.InsertOne(ctx, constant.TableUser, userInfo)
 	if err != nil {
-		log.Fatal(err)
-	}*/
-
-	/*err = client.Ping(context.TODO(), nil)
-
-	if err != nil {
-		log.Fatal(err)
-	}*/
-
-	//db := client.Database("gtest")
-	//table := db.Collection(constant.TableUser)
-
-	yy := bson.M{
-		"username": "test",
+		return nil, err
 	}
-	err = table.FindOne(context.TODO(), yy).Decode(&user)
-	log.Print(user)
-	log.Println("lll")
-
-	return user, err
+	return result.InsertedID, err
 }

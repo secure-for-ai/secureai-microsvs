@@ -1,4 +1,4 @@
-package graphql_api
+package gateway
 
 import (
 	"github.com/graphql-go/graphql"

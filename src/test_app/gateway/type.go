@@ -1,4 +1,4 @@
-package graphql_api
+package gateway
 
 import (
 	"github.com/graphql-go/graphql"
@@ -43,7 +43,7 @@ var userType = graphql.NewObject(graphql.ObjectConfig{
 			Type:        graphql.ID,
 			Description: "user id",
 			Resolve: func(p graphql.ResolveParams) (interface{}, error) {
-				if manager, ok := p.Source.(model.UserInfo); ok {
+				if manager, ok := p.Source.(*model.UserInfo); ok {
 					return manager.UID.Hex(), nil
 				}
 				return nil, constant.ErrParamEmpty

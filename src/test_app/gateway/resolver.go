@@ -1,4 +1,4 @@
-package graphql_api
+package gateway
 
 import (
 	"github.com/graphql-go/graphql"
@@ -17,11 +17,6 @@ func getUser(p graphql.ResolveParams) (interface{}, error) {
 	}
 
 	return model.GetUser(username)
-	/*if password, _ = p.Args["password"].(string); password == "" {
-		return model.GetUser(username)
-	} else {
-		return model.ManagerLogin(username, password)
-	}*/
 }
 
 func createUser(p graphql.ResolveParams) (interface{}, error) {

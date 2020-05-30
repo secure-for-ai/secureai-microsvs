@@ -1,42 +1,108 @@
 package config
 
 import (
-	"context"
-	//"context"
-	//"context"
-	//"fmt"
+	"encoding/json"
+	"io/ioutil"
 	"log"
+	"os"
+	"path"
 	"template2/lib/db"
 )
 
 type Config struct {
-	db string
+	MongoDB db.MongoDBConf
 }
 
 var Conf *Config
 var MongoDBClient *db.MongoDBClient
 
+var confPathPrefix = defaultConfPath("test_app/config")
+
 func init() {
-	log.Println("begin init all configs")
+	log.Println("Begin init")
+
+	initConf()
+	intiMongoDB()
+
+	log.Println("Over init")
+}
+
+func defaultConfPath(dir string) string {
+	wdPath, err := os.Getwd()
+
+	if err != nil {
+		log.Panic(err)
+		return ""
+	}
+
+	s := path.Join(wdPath, dir)
+	return s
+}
+
+func initConf() {
+	log.Println("Begin init default config")
+
 	Conf = &Config{}
-	MongoDBClient = &db.MongoDBClient{}
-	MongoDBClient1, err := db.NewMongoDB()
-	MongoDBClient.Copy(MongoDBClient1)
-	log.Println(MongoDBClient1)
-	if err != nil {
-		log.Fatal(err)
-		//panic(nil)
+	fileName := "default.json"
+
+	if v, ok := os.LookupEnv("CONFIG_PATH"); ok {
+		confPathPrefix = v
 	}
 
-	err = MongoDBClient.Ping(context.TODO(), nil)
+	// read default config
+	defaultConfFilePath := path.Join(confPathPrefix, fileName)
+	data, err := ioutil.ReadFile(defaultConfFilePath)
 
 	if err != nil {
-		log.Fatal(err)
+		log.Println("config-initConf: read default.json error")
+		log.Panic(err)
+		return
 	}
 
-	MongoDBClient.UseDatabase("gtest")
-	log.Println("Connected to MongoDB!")
-	log.Println(MongoDBClient)
+	err = json.Unmarshal(data, Conf)
+	if err != nil {
+		log.Println("config-initConf: unmarshal default.json error")
+		log.Panic(err)
+		return
+	}
 
-	log.Println("over init all configs")
+	// read env and config path
+	if v, ok := os.LookupEnv("ENV"); ok {
+		fileName = v + ".json"
+	}
+
+	if fileName != "default.json" {
+		// read env config
+		data, err = ioutil.ReadFile(confPathPrefix + fileName)
+		if err != nil {
+			log.Println("config-initConf: read [env].json error")
+			log.Panic(err)
+			return
+		}
+
+		err = json.Unmarshal(data, Conf)
+		if err != nil {
+			log.Println("config-initConf: unmarshal [env].json error")
+			log.Panic(err)
+			return
+		}
+	}
+
+	log.Println("Over init default config")
+}
+
+func intiMongoDB() {
+	log.Println("Begin init mongoDB")
+
+	client, err := db.NewMongoDB(Conf.MongoDB)
+
+	if err != nil {
+		log.Println("unable to init mongoDB")
+		log.Panic(err)
+		return
+	}
+
+	MongoDBClient = client
+
+	log.Println("Over init mongoDB")
 }

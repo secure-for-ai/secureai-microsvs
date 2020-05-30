@@ -20,11 +20,14 @@ services:
       - "27017:27017"
     volumes:
       - ./data/mongo:/data/db
+      - ./mongod.conf:/etc/mongod.conf
     environment:
       - MONGO_INITDB_ROOT_USERNAME=test
       - MONGO_INITDB_ROOT_PASSWORD=password
       - MONGO_INITDB_DATABASE=gtest
     container_name: gtemplate-dev-mongo
+    # RUN echo "rs.initiate();" > /docker-entrypoint-initdb.d/replica-init.js
+    command: ["mongod", "-f", "/etc/mongod.conf"]
   nginx:
     image: nginx
     ports:
