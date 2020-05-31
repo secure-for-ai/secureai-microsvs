@@ -1,4 +1,4 @@
-package gateway
+package graphql
 
 import (
 	"context"
@@ -40,6 +40,18 @@ var (
 				Type:        graphql.Boolean,
 				Description: "create user",
 				Resolve:     createUser,
+			},
+			"updateUser": &graphql.Field{
+				Args:        userArgs,
+				Type:        graphql.Boolean,
+				Description: "update account",
+				Resolve:     updateUser,
+			},
+			"deleteUser": &graphql.Field{
+				Args:        idArgs,
+				Type:        graphql.Boolean,
+				Description: "delete account",
+				Resolve:     deleteUser,
 			},
 		},
 	})

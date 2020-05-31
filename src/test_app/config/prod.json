@@ -1,6 +1,6 @@
 {
   "MongoDB": {
-    "Host": "localhost",
+    "Host": "mongo",
     "Port": "27017",
     "DBName": "gtest",
     "User": "test",

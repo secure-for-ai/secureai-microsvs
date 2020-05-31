@@ -5,7 +5,6 @@ import (
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
-	"log"
 	"template2/lib/db"
 	"template2/lib/util"
 	"template2/test_app/config"
@@ -22,16 +21,8 @@ type UserInfo struct {
 	UpdateTime int64  `bson:"updateTime" json:"updateTime"` // update time
 }
 
-var (
-//DefaultSelector = bson.M{}
-)
-
 /* API used Graph QL */
 func CreateUser(user *UserInfo) error {
-	/*query := bson.M{
-		"username": user.Username,
-	}*/
-
 	userInfo := UserInfo{
 		UID:        primitive.NewObjectID(),
 		Nickname:   user.Nickname,
@@ -43,14 +34,6 @@ func CreateUser(user *UserInfo) error {
 	dbClient := config.MongoDBClient
 
 	return DbTxInsertUser(dbClient, &userInfo)
-	/*user, err := DbOpFindUser(dbClient, &query)
-	if err != nil {
-		insertedID, err := DbOpInsertUser(dbClient, &userInfo)
-		log.Println("Inserted a single document: ", insertedID)
-		return err
-	}
-
-	return constant.ErrAccountExist*/
 }
 
 func GetUser(username string) (user *UserInfo, err error) {
@@ -67,6 +50,72 @@ func GetUser(username string) (user *UserInfo, err error) {
 	return user, err
 }
 
+func GetUserById(id string) (user *UserInfo, err error) {
+	var uid primitive.ObjectID
+	uid, ok := primitive.ObjectIDFromHex(id)
+	if ok != nil {
+		return user, constant.ErrParamIDFormatWrong
+	}
+	query := bson.M{
+		"_id": uid,
+	}
+	dbClient := config.MongoDBClient
+
+	user, err = DbOpFindUser(context.Background(), dbClient, &query)
+
+	if err != nil {
+		return user, constant.ErrAccountNotExist
+	}
+
+	return user, err
+}
+
+func UpdateUser(user *UserInfo) error {
+	query := bson.M{
+		"_id": user.UID,
+	}
+	update := bson.M{
+		"$set": user,
+	}
+	dbClient := config.MongoDBClient
+
+	success, err := DbOpUpdateUser(context.Background(), dbClient, &query, &update)
+
+	if err != nil {
+		return constant.ErrDatabase
+	}
+	if success {
+		return nil
+	}
+
+	return constant.ErrAccountNotExist
+}
+
+func DeleteUser(id string) error {
+
+	var uid primitive.ObjectID
+	uid, ok := primitive.ObjectIDFromHex(id)
+	if ok != nil {
+		return constant.ErrParamIDFormatWrong
+	}
+
+	query := bson.M{
+		"_id": uid,
+	}
+	dbClient := config.MongoDBClient
+
+	success, err := DbOpDeleteUser(context.Background(), dbClient, &query)
+
+	if err != nil {
+		return constant.ErrDatabase
+	}
+	if success {
+		return nil
+	}
+
+	return constant.ErrAccountNotExist
+}
+
 /* Database Transaction */
 func DbTxInsertUser(client *db.MongoDBClient, userInfo *UserInfo) error {
 	query := bson.M{
@@ -77,10 +126,6 @@ func DbTxInsertUser(client *db.MongoDBClient, userInfo *UserInfo) error {
 		_, err := DbOpFindUser(sessCtx, client, &query)
 		if err != nil {
 			insertedID, err := DbOpInsertUser(sessCtx, client, &userInfo)
-			log.Println("Inserted a single document: ", insertedID)
-			log.Println(err)
-			log.Println("==========")
-			//result = insertedID
 			return insertedID, err
 		}
 		return nil, constant.ErrAccountExist
@@ -102,4 +147,23 @@ func DbOpInsertUser(ctx context.Context, client *db.MongoDBClient, userInfo inte
 		return nil, err
 	}
 	return result.InsertedID, err
+}
+
+func DbOpUpdateUser(ctx context.Context, client *db.MongoDBClient,
+	filter interface{}, userInfo interface{}) (success bool, err error) {
+	result, err := client.UpdateOne(ctx, constant.TableUser, filter, userInfo)
+
+	if err != nil {
+		return false, err
+	}
+
+	return result.MatchedCount > 0, err
+}
+
+func DbOpDeleteUser(ctx context.Context, client *db.MongoDBClient, filter interface{}) (success bool, err error) {
+	result, err := client.DeleteOne(ctx, constant.TableUser, filter)
+	if err != nil {
+		return false, err
+	}
+	return result.DeletedCount > 0, err
 }

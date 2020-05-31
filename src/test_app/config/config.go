@@ -22,6 +22,8 @@ func init() {
 	log.Println("Begin init")
 
 	initConf()
+	log.Println(Conf)
+
 	intiMongoDB()
 
 	log.Println("Over init")
@@ -73,7 +75,7 @@ func initConf() {
 
 	if fileName != "default.json" {
 		// read env config
-		data, err = ioutil.ReadFile(confPathPrefix + fileName)
+		data, err = ioutil.ReadFile(path.Join(confPathPrefix, fileName))
 		if err != nil {
 			log.Println("config-initConf: read [env].json error")
 			log.Panic(err)

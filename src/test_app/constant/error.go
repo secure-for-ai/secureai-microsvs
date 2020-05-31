@@ -4,7 +4,9 @@ import "errors"
 
 /* Common Error */
 var (
-	ErrParamEmpty = errors.New("ErrParamEmpty")
+	ErrDatabase           = errors.New("ErrDatabase")
+	ErrParamEmpty         = errors.New("ErrParamEmpty")
+	ErrParamIDFormatWrong = errors.New("ErrParamIDFormatWrong")
 )
 
 /* User Info Error */

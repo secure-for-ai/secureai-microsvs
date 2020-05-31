@@ -12,8 +12,10 @@ services:
     depends_on:
     #  - redis
       - mongo
+    environment:
+      - ENV=prod
     container_name: gtemplate-dev-api
-    entrypoint: go run main.go
+    entrypoint: go run test_app/main.go
   mongo:
     image: mongo:4.2.6
     ports:

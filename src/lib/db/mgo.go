@@ -20,8 +20,8 @@ type MongoDBConf struct {
 }
 
 func (this MongoDBConf) GetMongoURI() string {
-	mongoURI := fmt.Sprintf("mongodb://%s:%s@%s:%s/%s?", //retryWrites=false&replSet=rs0
-		this.User, this.PW, this.Host, this.Port, this.DBName)
+	mongoURI := fmt.Sprintf("mongodb://%s:%s@%s:%s/%s?retryWrites=false&replSet=rs0&connect=direct",
+		this.User, this.PW, this.Host, this.Port, this.AdminDBName)
 	return mongoURI
 }
 
@@ -57,7 +57,6 @@ func NewMongoDB(conf MongoDBConf) (client *MongoDBClient, err error) {
 
 	client.UseDatabase(conf.DBName)
 	log.Printf("Use Database: \"%s\"\n", conf.DBName)
-	//client.database.WriteConcern()
 
 	return client, err
 }
@@ -105,11 +104,6 @@ func (this *MongoDBClient) StartSession() (mongo.Session, error) {
 	return this.client.StartSession()
 }
 
-func Test(sess mongo.Session, ctx context.Context) {
-	log.Println("End Session")
-	sess.EndSession(ctx)
-}
-
 func (this *MongoDBClient) WithTransaction(
 	fn func(sessCtx mongo.SessionContext) (interface{}, error)) (result interface{}, err error) {
 	var session mongo.Session
@@ -124,24 +118,19 @@ func (this *MongoDBClient) WithTransaction(
 	}
 
 	// auto call AbortTransaction() if failed
-	defer Test(session, ctx)
-	//defer session.EndSession(ctx)
+	defer session.EndSession(ctx)
 
 	if err = mongo.WithSession(ctx, session, func(sessCtx mongo.SessionContext) error {
 		result, err = fn(sessCtx)
-		log.Println(result)
 		if errCommit := session.CommitTransaction(sessCtx); errCommit != nil {
 			result = nil
-			log.Println("********")
-			log.Println(errCommit)
 			return errCommit
 		}
 		return err
 	}); err != nil {
 		return nil, err
 	}
-	log.Println("======********")
-	log.Println(err)
+
 	return result, err
 }
 

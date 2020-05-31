@@ -1,10 +1,17 @@
-package gateway
+package graphql
 
 import (
 	"github.com/graphql-go/graphql"
 	"template2/test_app/constant"
 	"template2/test_app/model"
 )
+
+var idArgs = graphql.FieldConfigArgument{
+	"uid": &graphql.ArgumentConfig{
+		Description: "uid",
+		Type:        graphql.String,
+	},
+}
 
 var userArgs = graphql.FieldConfigArgument{
 	"uid": &graphql.ArgumentConfig{
@@ -37,7 +44,7 @@ var userArgs = graphql.FieldConfigArgument{
 
 var userType = graphql.NewObject(graphql.ObjectConfig{
 	Name:        "user",
-	Description: "用户",
+	Description: "user",
 	Fields: graphql.Fields{
 		"uid": &graphql.Field{
 			Type:        graphql.ID,

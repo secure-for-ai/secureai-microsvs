@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"log"
 	"net/http"
-	"template2/test_app/gateway"
+	"template2/test_app/graphql"
 )
 
 func helloWorld(w http.ResponseWriter, r *http.Request) {
@@ -13,7 +13,7 @@ func helloWorld(w http.ResponseWriter, r *http.Request) {
 
 func main() {
 	log.Println("Start service")
-	//http.HandleFunc("/api/hello", helloWorld)
-	http.HandleFunc("/api/graphql", gateway.Graphql)
+	http.HandleFunc("/api/hello", helloWorld)
+	http.HandleFunc("/api/graphql", graphql.Graphql)
 	http.ListenAndServe(":6551", nil)
 }
