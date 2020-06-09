@@ -6,11 +6,13 @@ import (
 	"log"
 	"os"
 	"path"
+	"template2/lib/cache"
 	"template2/lib/db"
 )
 
 type Config struct {
 	MongoDB db.MongoDBConf
+	Redis   cache.RedisConf
 }
 
 var Conf *Config
