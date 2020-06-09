@@ -42,7 +42,7 @@ func GetUser(username string) (user *UserInfo, err error) {
 	}
 	dbClient := config.MongoDBClient
 
-	user, err = DbOpFindUser(context.Background(), dbClient, &query)
+	user, err = findUser(context.Background(), dbClient, &query)
 
 	if err != nil {
 		return user, constant.ErrAccountNotExist
@@ -61,7 +61,7 @@ func GetUserById(id string) (user *UserInfo, err error) {
 	}
 	dbClient := config.MongoDBClient
 
-	user, err = DbOpFindUser(context.Background(), dbClient, &query)
+	user, err = findUser(context.Background(), dbClient, &query)
 
 	if err != nil {
 		return user, constant.ErrAccountNotExist
@@ -79,16 +79,12 @@ func UpdateUser(user *UserInfo) error {
 	}
 	dbClient := config.MongoDBClient
 
-	success, err := DbOpUpdateUser(context.Background(), dbClient, &query, &update)
-
+	err := updateUser(context.Background(), dbClient, &query, &update)
 	if err != nil {
-		return constant.ErrDatabase
-	}
-	if success {
-		return nil
+		return err
 	}
 
-	return constant.ErrAccountNotExist
+	return nil
 }
 
 func DeleteUser(id string) error {
@@ -104,16 +100,11 @@ func DeleteUser(id string) error {
 	}
 	dbClient := config.MongoDBClient
 
-	success, err := DbOpDeleteUser(context.Background(), dbClient, &query)
-
+	err := deleteUser(context.Background(), dbClient, &query)
 	if err != nil {
-		return constant.ErrDatabase
+		return err
 	}
-	if success {
-		return nil
-	}
-
-	return constant.ErrAccountNotExist
+	return nil
 }
 
 /* Database Transaction */
@@ -123,9 +114,9 @@ func DbTxInsertUser(client *db.MongoDBClient, userInfo *UserInfo) error {
 	}
 
 	_, err := client.WithTransaction(func(sessCtx mongo.SessionContext) (interface{}, error) {
-		_, err := DbOpFindUser(sessCtx, client, &query)
+		_, err := findUser(sessCtx, client, &query)
 		if err != nil {
-			insertedID, err := DbOpInsertUser(sessCtx, client, &userInfo)
+			insertedID, err := insertUser(sessCtx, client, &userInfo)
 			return insertedID, err
 		}
 		return nil, constant.ErrAccountExist
@@ -135,13 +126,13 @@ func DbTxInsertUser(client *db.MongoDBClient, userInfo *UserInfo) error {
 }
 
 /* Database Operation: Insert, Deletion, Update, Select */
-func DbOpFindUser(ctx context.Context, client *db.MongoDBClient, filter interface{}) (user *UserInfo, err error) {
+func findUser(ctx context.Context, client *db.MongoDBClient, filter interface{}) (user *UserInfo, err error) {
 	user = &UserInfo{}
 	err = client.FindOne(ctx, constant.TableUser, filter, user)
 	return user, err
 }
 
-func DbOpInsertUser(ctx context.Context, client *db.MongoDBClient, userInfo interface{}) (uid interface{}, err error) {
+func insertUser(ctx context.Context, client *db.MongoDBClient, userInfo interface{}) (interface{}, error) {
 	result, err := client.InsertOne(ctx, constant.TableUser, userInfo)
 	if err != nil {
 		return nil, err
@@ -149,21 +140,19 @@ func DbOpInsertUser(ctx context.Context, client *db.MongoDBClient, userInfo inte
 	return result.InsertedID, err
 }
 
-func DbOpUpdateUser(ctx context.Context, client *db.MongoDBClient,
-	filter interface{}, userInfo interface{}) (success bool, err error) {
-	result, err := client.UpdateOne(ctx, constant.TableUser, filter, userInfo)
-
+func updateUser(ctx context.Context, client *db.MongoDBClient,
+	filter interface{}, userInfo interface{}) error {
+	_, err := client.UpdateOne(ctx, constant.TableUser, filter, userInfo)
 	if err != nil {
-		return false, err
+		return err
 	}
-
-	return result.MatchedCount > 0, err
+	return err
 }
 
-func DbOpDeleteUser(ctx context.Context, client *db.MongoDBClient, filter interface{}) (success bool, err error) {
-	result, err := client.DeleteOne(ctx, constant.TableUser, filter)
+func deleteUser(ctx context.Context, client *db.MongoDBClient, filter interface{}) error {
+	_, err := client.DeleteOne(ctx, constant.TableUser, filter)
 	if err != nil {
-		return false, err
+		return err
 	}
-	return result.DeletedCount > 0, err
+	return err
 }
