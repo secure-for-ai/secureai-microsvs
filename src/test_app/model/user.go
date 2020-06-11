@@ -5,6 +5,7 @@ import (
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
+	"go.mongodb.org/mongo-driver/mongo/options"
 	"template2/lib/db"
 	"template2/lib/util"
 	"template2/test_app/config"
@@ -21,7 +22,7 @@ type UserInfo struct {
 	UpdateTime int64  `bson:"updateTime" json:"updateTime"` // update time
 }
 
-/* API used Graph QL */
+/* API used by Graph QL */
 func CreateUser(user *UserInfo) error {
 	userInfo := UserInfo{
 		UID:        primitive.NewObjectID(),
@@ -33,7 +34,7 @@ func CreateUser(user *UserInfo) error {
 	}
 	dbClient := config.MongoDBClient
 
-	return DbTxInsertUser(dbClient, &userInfo)
+	return dbTxInsertUser(dbClient, &userInfo)
 }
 
 func GetUser(username string) (user *UserInfo, err error) {
@@ -107,8 +108,29 @@ func DeleteUser(id string) error {
 	return nil
 }
 
+func ListUser(username string, page, perPage int64) (int64, *[]UserInfo, error) {
+	query := bson.M{}
+
+	if username != "" {
+		query["username"] = bson.M{"$regex": username}
+	}
+	dbClient := config.MongoDBClient
+
+	count, err := listUserCount(context.Background(), dbClient, &query)
+	if err != nil {
+		return 0, nil, constant.ErrDatabase
+	}
+
+	users, err := listUser(context.Background(), dbClient, &query, page, perPage)
+	if err != nil {
+		return 0, nil, constant.ErrDatabase
+	}
+
+	return count, users, err
+}
+
 /* Database Transaction */
-func DbTxInsertUser(client *db.MongoDBClient, userInfo *UserInfo) error {
+func dbTxInsertUser(client *db.MongoDBClient, userInfo *UserInfo) error {
 	query := bson.M{
 		"username": userInfo.Username,
 	}
@@ -155,4 +177,27 @@ func deleteUser(ctx context.Context, client *db.MongoDBClient, filter interface{
 		return err
 	}
 	return err
+}
+
+func listUserCount(ctx context.Context, client *db.MongoDBClient, filter interface{}) (count int64, err error) {
+	count, err = client.GetTable(constant.TableUser).CountDocuments(ctx, filter)
+	return count, err
+}
+
+func listUser(ctx context.Context, client *db.MongoDBClient, filter interface{}, page, perPage int64) (data *[]UserInfo, err error) {
+	data = &[]UserInfo{}
+	findOptions := options.Find()
+	// Sort by `updateTime` field descending
+	findOptions.SetSort(bson.D{{"updateTime", -1}})
+	// Skip (page-1) pages
+	findOptions.SetSkip((page - 1) * perPage)
+	// only return perPage records
+	findOptions.SetLimit(perPage)
+	cursor, err := client.GetTable(constant.TableUser).Find(ctx, filter, findOptions)
+	if err != nil {
+		return data, err
+	}
+	err = cursor.All(ctx, data)
+
+	return data, err
 }

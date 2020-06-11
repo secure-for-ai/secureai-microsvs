@@ -2,17 +2,18 @@ package config
 
 import (
 	"encoding/json"
+	//"fmt"
 	"io/ioutil"
 	"log"
 	"os"
 	"path"
-	"template2/lib/cache"
+	//"template2/lib/cache"
 	"template2/lib/db"
 )
 
 type Config struct {
 	MongoDB db.MongoDBConf
-	Redis   cache.RedisConf
+	//Redis   cache.RedisConf
 }
 
 var Conf *Config
@@ -110,3 +111,14 @@ func intiMongoDB() {
 
 	log.Println("Over init mongoDB")
 }
+
+/*
+
+func initRedis() {
+	redisConf := Conf.Redis
+	redisURL = fmt.Sprintf("%s:%s", redisConf.Host, redisConf.Port)
+	redisPW = redisConf.PW
+	globalRedisPool = GetRedisPool()
+}
+
+*/

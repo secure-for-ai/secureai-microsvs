@@ -1,9 +1,7 @@
 package cache
 
 import (
-	"fmt"
 	"github.com/garyburd/redigo/redis"
-	"template2/test_app/config"
 )
 
 type RedisConf struct {
@@ -20,13 +18,6 @@ type RedisDBCntlr struct {
 var globalRedisPool *redis.Pool
 var redisURL string
 var redisPW string
-
-func init() {
-	redisConf := config.Conf.Redis
-	redisURL = fmt.Sprintf("%s:%s", redisConf.Host, redisConf.Port)
-	redisPW = redisConf.PW
-	globalRedisPool = GetRedisPool()
-}
 
 // GetRedisPool get the client pool of redis
 func GetRedisPool() *redis.Pool {

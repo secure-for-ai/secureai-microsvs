@@ -18,11 +18,17 @@ var (
 				Description: "health check",
 				Resolve:     getHealth,
 			},
-			"user": &graphql.Field{
+			"getUser": &graphql.Field{
 				Args:        userArgs,
 				Type:        userType,
 				Description: "get user info",
 				Resolve:     getUser,
+			},
+			"listUser": &graphql.Field{
+				Args:        userListArgs,
+				Type:        userListType,
+				Description: "list users",
+				Resolve:     listUser,
 			},
 		},
 	})

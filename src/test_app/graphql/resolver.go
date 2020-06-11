@@ -91,3 +91,30 @@ func deleteUser(p graphql.ResolveParams) (interface{}, error) {
 	}
 	return true, nil
 }
+
+func listUser(p graphql.ResolveParams) (interface{}, error) {
+	var (
+		ok                   bool
+		username             string
+		page, perPage, count int64
+		err                  error
+		us                   *[]model.UserInfo
+	)
+
+	username, _ = p.Args["username"].(string)
+	if page, ok = p.Args["page"].(int64); !ok {
+		return false, constant.ErrParamEmpty
+	}
+	if perPage, ok = p.Args["perPage"].(int64); !ok {
+		return false, constant.ErrParamEmpty
+	}
+
+	if count, us, err = model.ListUser(username, page, perPage); err != nil {
+		return nil, err
+	}
+
+	return map[string]interface{}{
+		"list":  us,
+		"count": count,
+	}, nil
+}

@@ -2,6 +2,7 @@ package graphql
 
 import (
 	"github.com/graphql-go/graphql"
+	"template2/lib/graphql_ext"
 	"template2/test_app/constant"
 	"template2/test_app/model"
 )
@@ -32,12 +33,12 @@ var userArgs = graphql.FieldConfigArgument{
 	},
 	"createTime": &graphql.ArgumentConfig{
 		// change to Int64 scalar
-		Type:        graphql.Int,
+		Type:        graphql_ext.Int64,
 		Description: "creation time",
 	},
 	"updateTime": &graphql.ArgumentConfig{
 		// change to Int64 scalar
-		Type:        graphql.Int,
+		Type:        graphql_ext.Int64,
 		Description: "update time",
 	},
 }
@@ -50,8 +51,11 @@ var userType = graphql.NewObject(graphql.ObjectConfig{
 			Type:        graphql.ID,
 			Description: "user id",
 			Resolve: func(p graphql.ResolveParams) (interface{}, error) {
-				if manager, ok := p.Source.(*model.UserInfo); ok {
-					return manager.UID.Hex(), nil
+				if user, ok := p.Source.(*model.UserInfo); ok {
+					return user.UID.Hex(), nil
+				}
+				if user, ok := p.Source.(model.UserInfo); ok {
+					return user.UID.Hex(), nil
 				}
 				return nil, constant.ErrParamEmpty
 			},
@@ -70,13 +74,43 @@ var userType = graphql.NewObject(graphql.ObjectConfig{
 		},
 		"createTime": &graphql.Field{
 			// change to Int64 scalar
-			Type:        graphql.Int,
+			Type:        graphql_ext.Int64,
 			Description: "creation time",
 		},
 		"updateTime": &graphql.Field{
 			// change to Int64 scalar
-			Type:        graphql.Int,
+			Type:        graphql_ext.Int64,
 			Description: "update time",
 		},
 	},
 })
+
+var userListType = graphql.NewObject(graphql.ObjectConfig{
+	Name:        "userList",
+	Description: "user list",
+	Fields: graphql.Fields{
+		"list": &graphql.Field{
+			Type:        graphql.NewList(userType),
+			Description: "user list",
+		},
+		"count": &graphql.Field{
+			Type:        graphql_ext.Int64,
+			Description: "number of users",
+		},
+	},
+})
+
+var userListArgs = graphql.FieldConfigArgument{
+	"username": &graphql.ArgumentConfig{
+		Type:        graphql.String,
+		Description: "username",
+	},
+	"perPage": &graphql.ArgumentConfig{
+		Type:        graphql.NewNonNull(graphql_ext.Int64),
+		Description: "perPage",
+	},
+	"page": &graphql.ArgumentConfig{
+		Type:        graphql.NewNonNull(graphql_ext.Int64),
+		Description: "perPage",
+	},
+}

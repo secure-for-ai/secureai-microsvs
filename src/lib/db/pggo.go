@@ -7,5 +7,5 @@ import (
 )
 
 func main() {
-	conn, err := pgx.Connect(context.Background(), os.Getenv("DATABASE_URL"))
+	pgx.Connect(context.Background(), os.Getenv("DATABASE_URL"))
 }
