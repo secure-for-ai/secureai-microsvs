@@ -12,4 +12,5 @@ require (
 	github.com/shopspring/decimal v1.2.0 // indirect
 	go.mongodb.org/mongo-driver v1.3.3
 	github.com/go-redis/redis/v8 v8.0.0-beta.4
+	github.com/adyen/adyen-go-api-library v1.0.1
 )

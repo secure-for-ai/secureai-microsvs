@@ -9,5 +9,11 @@
     "Options" : {
       "retryWrites": false
     }
+  },
+  "Redis": {
+    "Addrs": [
+      "localhost:6379"
+    ],
+    "PW": "password"
   }
 }

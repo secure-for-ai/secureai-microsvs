@@ -18,6 +18,7 @@ type RedisClient struct {
 }
 
 func NewRedisClient(conf RedisConf) (client *RedisClient, err error) {
+	client = &RedisClient{}
 	rdb := redis.NewUniversalClient(&redis.UniversalOptions{
 		Addrs:    conf.Addrs,
 		Password: conf.PW,

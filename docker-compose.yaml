@@ -10,7 +10,7 @@ services:
     ports:
       - "6551:6551"
     depends_on:
-    #  - redis
+      - redis
       - mongo
     environment:
       - ENV=prod
@@ -31,6 +31,17 @@ services:
     container_name: gtemplate-dev-mongo
     # RUN echo "rs.initiate();" > /docker-entrypoint-initdb.d/replica-init.js
     command: ["mongod", "--auth", "--bind_ip_all", "--replSet", "rs0" ]
+  redis:
+    image: redis
+    ports:
+      - "6379:6379"
+    environment:
+      - RedisPass=password
+    volumes:
+      - ./data/redis:/data
+      - ./redis.conf:/usr/local/etc/redis/redis.conf
+    command: [ "redis-server", "/usr/local/etc/redis/redis.conf" ]
+    container_name: gtemplate-dev-redis
   nginx:
     image: nginx
     ports:
