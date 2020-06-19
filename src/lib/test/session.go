@@ -24,13 +24,19 @@ var (
 		},
 		IdGenerator:   "base64",
 		Serializer:    "gob",
-		CookieHandler: "standard",
+		CookieHandler: "standard", // "secure",
 		// key must be 16, 24 or 32 bytes long (AES-128, AES-192 or AES-256), encoded in base64RawUrl
-		KeyPairs: []string{"pR6kDdHYqNMRO74kUxFiGgpv3A6qKFeCY6IDHxDH8NY"},
+		KeyPairs: []string{
+			"pR6kDdHYqNMRO74kUxFiGgpv3A6qKFeCY6IDHxDH8NY",
+			"4M3xrW-JjbMYRYDqUVBPNAJKR0LW8ehvm_jcwD6iyT0",
+		},
+	}
+	storage = session.RedisStoreEngine{
+		RedisClient: sessRedisClient,
 	}
 	//key   = []byte("super-secret-key")
 	//store = sessions.NewCookieStore(key)
-	store = session.NewSessionStore(sessRedisClient, &storeConf)
+	store = session.NewSessionStore(&storage, &storeConf)
 )
 
 func secret(w http.ResponseWriter, r *http.Request) {

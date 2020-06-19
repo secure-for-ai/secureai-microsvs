@@ -122,6 +122,32 @@ func (h StdCookieHandler) Decode(c *http.Cookie, sess *sessions.Session, store *
 	return nil
 }
 
+// StoreEngine provides an interface hook for alternative session value storage such as
+// redis, postgres, mysql, etc
+type StoreEngine interface {
+	load(key string) ([]byte, error)
+	save(key string, value []byte, duration time.Duration) error
+	delete(key string) error
+}
+
+type RedisStoreEngine struct {
+	RedisClient *cache.RedisClient
+}
+
+func (r *RedisStoreEngine) load(key string) ([]byte, error) {
+	return r.RedisClient.GetBytes(context.Background(), key)
+}
+
+func (r *RedisStoreEngine) save(key string, value []byte, duration time.Duration) error {
+	_, err := r.RedisClient.Set(context.Background(), key, value, duration)
+	return err
+}
+
+func (r *RedisStoreEngine) delete(key string) error {
+	_, err := r.RedisClient.Del(context.Background(), key)
+	return err
+}
+
 type HybridStoreConf struct {
 	IdLength      int               `json:"IdLength"`
 	KeyPrefix     string            `json:"KeyPrefix"`
@@ -133,7 +159,7 @@ type HybridStoreConf struct {
 }
 
 type HybridStore struct {
-	RedisClient   *cache.RedisClient
+	Storage       StoreEngine
 	Codecs        []securecookie.Codec
 	Options       *sessions.Options // default configuration
 	idLength      int
@@ -143,7 +169,7 @@ type HybridStore struct {
 	cookieHandler CookieHandler
 }
 
-func NewSessionStore(client *cache.RedisClient, conf *HybridStoreConf) *HybridStore {
+func NewSessionStore(storage StoreEngine, conf *HybridStoreConf) *HybridStore {
 	var (
 		idGenerator   IdGenerator    = Base64ID{}
 		serializer    DataSerializer = GobSerializer{}
@@ -199,7 +225,7 @@ func NewSessionStore(client *cache.RedisClient, conf *HybridStoreConf) *HybridSt
 	}
 	// initial session store
 	store := &HybridStore{
-		RedisClient:   client,
+		Storage:       storage,
 		Codecs:        codecs,
 		Options:       &Options,
 		idLength:      conf.IdLength,
@@ -291,15 +317,15 @@ func (s *HybridStore) save(session *sessions.Session) error {
 		age = s.Options.MaxAge
 	}
 	fmt.Println("save ID", s.keyPrefix+session.ID)
-	count, err := s.RedisClient.Set(context.Background(), s.keyPrefix+session.ID, data, time.Duration(age)*time.Second)
-	fmt.Println("save count", count)
+	err = s.Storage.save(s.keyPrefix+session.ID, data, time.Duration(age)*time.Second)
+	fmt.Println("save err", err)
 	return err
 }
 
 // load reads the session from redis.
 // returns true if there is a sessoin data in DB
 func (s *HybridStore) load(session *sessions.Session) (bool, error) {
-	data, err := s.RedisClient.GetBytes(context.Background(), s.keyPrefix+session.ID)
+	data, err := s.Storage.load(s.keyPrefix + session.ID)
 	fmt.Println("load session id", s.keyPrefix+session.ID)
 	fmt.Println("load", data)
 	if err != nil {
@@ -315,6 +341,5 @@ func (s *HybridStore) load(session *sessions.Session) (bool, error) {
 
 // delete removes keys from redis if MaxAge<0
 func (s *HybridStore) delete(session *sessions.Session) error {
-	_, err := s.RedisClient.Del(context.Background(), s.keyPrefix+session.ID)
-	return err
+	return s.Storage.delete(s.keyPrefix + session.ID)
 }
