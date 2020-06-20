@@ -1,6 +1,7 @@
 package graphql
 
 import (
+	"fmt"
 	"github.com/graphql-go/graphql"
 	"log"
 	"template2/lib/session"
@@ -162,6 +163,7 @@ func logout(p graphql.ResolveParams) (interface{}, error) {
 }
 
 func checkLogin(p graphql.ResolveParams) (interface{}, error) {
+	fmt.Println(p.Info.RootValue.(map[string]interface{})["uid"])
 	collection, ok := session.FromCollectionContext(p.Context)
 
 	if !ok {

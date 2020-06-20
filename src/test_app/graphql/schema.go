@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"template2/lib/session"
 	"template2/test_app/config"
+	"template2/test_app/model"
 )
 
 var (
@@ -97,6 +98,30 @@ func init() {
 		// GraphiQL: !isProd,
 		Pretty:     !isProd,
 		Playground: !isProd,
+		RootObjectFn: func(ctx context.Context, r *http.Request) map[string]interface{} {
+			root := map[string]interface{}{}
+
+			collection, ok := session.FromCollectionContext(ctx)
+
+			if !ok {
+				return nil
+			}
+
+			s, _ := collection.Get("SID")
+
+			userInfo, ok := s.Values["userInfo"]
+
+			if !ok {
+				return root
+			}
+
+			root["uid"] = userInfo.(model.UserInfo).UID
+			return root
+
+			//map[string]interface{}{
+			//				"uid": s.Values["userInfo"].(model.UserInfo).UID,
+			//			}
+		},
 		ResultCallbackFn: func(ctx context.Context, params *graphql.Params, result *graphql.Result, responseBody []byte) {
 			//sess, _ := ctx.Value("sessions").(map[string]*sessions.Session)
 			//if sess["SID"].IsNew {
