@@ -3,6 +3,7 @@ package graphql
 import (
 	"github.com/graphql-go/graphql"
 	"log"
+	"template2/lib/session"
 	"template2/lib/util"
 	"template2/test_app/constant"
 	"template2/test_app/model"
@@ -117,4 +118,60 @@ func listUser(p graphql.ResolveParams) (interface{}, error) {
 		"list":  us,
 		"count": count,
 	}, nil
+}
+
+func login(p graphql.ResolveParams) (interface{}, error) {
+	var (
+		user *model.UserInfo
+		err  error
+	)
+	username, _ := p.Args["username"].(string)
+	collection, ok := session.FromCollectionContext(p.Context)
+
+	if !ok {
+		return false, constant.ErrSession
+	}
+	if user, err = model.GetUser(username); err != nil {
+		return false, err
+	}
+
+	_ = collection.UpdateValue("SID", "userInfo", user)
+	err = collection.Save("SID")
+
+	if err != nil {
+		return false, err
+	}
+	return true, nil
+}
+
+func logout(p graphql.ResolveParams) (interface{}, error) {
+	collection, ok := session.FromCollectionContext(p.Context)
+
+	if !ok {
+		return false, constant.ErrSession
+	}
+
+	_ = collection.MaxAge("SID", -1)
+	err := collection.Save("SID")
+
+	if err != nil {
+		return false, err
+	}
+
+	return true, nil
+}
+
+func checkLogin(p graphql.ResolveParams) (interface{}, error) {
+	collection, ok := session.FromCollectionContext(p.Context)
+
+	if !ok {
+		return false, constant.ErrSession
+	}
+
+	s, _ := collection.Get("SID")
+	if userInfo, ok := s.Values["userInfo"]; ok {
+		return userInfo, nil
+	}
+
+	return nil, constant.ErrAccountNotLogin
 }

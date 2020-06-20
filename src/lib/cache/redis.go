@@ -30,7 +30,7 @@ func NewRedisClient(conf RedisConf) (client *RedisClient, err error) {
 		log.Fatal(err)
 		return nil, err
 	}
-	log.Println(pong, "Redis Success!")
+	log.Println(pong, "Ping Redis Success!")
 
 	client.rdb = rdb
 

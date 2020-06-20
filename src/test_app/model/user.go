@@ -2,6 +2,7 @@ package model
 
 import (
 	"context"
+	"encoding/gob"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
@@ -20,6 +21,12 @@ type UserInfo struct {
 	Email      string `bson:"email" json:"email"`           // email
 	CreateTime int64  `bson:"createTime" json:"createTime"` // create time
 	UpdateTime int64  `bson:"updateTime" json:"updateTime"` // update time
+}
+
+// Helpers --------------------------------------------------------------------
+
+func init() {
+	gob.Register(UserInfo{})
 }
 
 /* API used by Graph QL */

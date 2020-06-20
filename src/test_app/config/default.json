@@ -1,6 +1,6 @@
 {
   "MongoDB": {
-    "Host": "localhost",
+    "Host": "mongo",
     "Port": "27017",
     "DBName": "gtest",
     "User": "test",
@@ -12,8 +12,22 @@
   },
   "Redis": {
     "Addrs": [
-      "localhost:6379"
+      "redis:6379"
     ],
     "PW": "password"
+  },
+  "Session": {
+    "IdLength":  32,
+    "KeyPrefix": "session_",
+    "Options": {
+      "Path":   "/",
+      "Domain": "localhost",
+      "MaxAge": 2592000,
+      "Secure": false,
+      "HttpOnly": true
+    },
+    "IdGenerator":   "base64",
+    "Serializer":    "gob",
+    "CookieHandler": "standard"
   }
 }

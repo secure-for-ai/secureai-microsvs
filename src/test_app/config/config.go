@@ -2,6 +2,9 @@ package config
 
 import (
 	"encoding/json"
+	"template2/lib/cache"
+	"template2/lib/session"
+
 	//"fmt"
 	"io/ioutil"
 	"log"
@@ -13,11 +16,14 @@ import (
 
 type Config struct {
 	MongoDB db.MongoDBConf
-	//Redis   cache.RedisConf
+	Redis   cache.RedisConf
+	Session session.HybridStoreConf
 }
 
 var Conf *Config
 var MongoDBClient *db.MongoDBClient
+var RedisClient *cache.RedisClient
+var SessionStore *session.HybridStore
 
 var confPathPrefix = defaultConfPath("test_app/config")
 
@@ -28,6 +34,8 @@ func init() {
 	log.Println(Conf)
 
 	intiMongoDB()
+	initRedis()
+	initSession()
 
 	log.Println("Over init")
 }
@@ -112,13 +120,27 @@ func intiMongoDB() {
 	log.Println("Over init mongoDB")
 }
 
-/*
-
 func initRedis() {
-	redisConf := Conf.Redis
-	redisURL = fmt.Sprintf("%s:%s", redisConf.Host, redisConf.Port)
-	redisPW = redisConf.PW
-	globalRedisPool = GetRedisPool()
+	log.Println("Begin init redis")
+
+	var err error
+	RedisClient, err = cache.NewRedisClient(Conf.Redis)
+	if err != nil {
+		log.Println("unable to init redis")
+		log.Panic(err)
+		return
+	}
+
+	log.Println("Over init redis")
 }
 
-*/
+func initSession() {
+	log.Println("Begin init session store")
+
+	storage := session.RedisStoreEngine{
+		RedisClient: RedisClient,
+	}
+	SessionStore = session.NewSessionStore(&storage, &Conf.Session)
+
+	log.Println("Over init session store")
+}

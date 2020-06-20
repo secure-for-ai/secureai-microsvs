@@ -13,4 +13,6 @@ var (
 var (
 	ErrAccountExist    = errors.New("ErrAccountExist")
 	ErrAccountNotExist = errors.New("ErrAccountNotExist")
+	ErrSession         = errors.New("ErrSession")
+	ErrAccountNotLogin = errors.New("ErrAccountNotLogin")
 )

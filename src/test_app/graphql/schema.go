@@ -2,9 +2,12 @@ package graphql
 
 import (
 	"context"
+	"github.com/gorilla/sessions"
 	"github.com/graphql-go/graphql"
 	gh "github.com/graphql-go/handler"
 	"net/http"
+	"template2/lib/session"
+	"template2/test_app/config"
 )
 
 var (
@@ -29,6 +32,12 @@ var (
 				Type:        userListType,
 				Description: "list users",
 				Resolve:     listUser,
+			},
+			"checkLogin": &graphql.Field{
+				Args:        userArgs,
+				Type:        userType,
+				Description: "get user info",
+				Resolve:     checkLogin,
 			},
 		},
 	})
@@ -59,6 +68,17 @@ var (
 				Description: "delete account",
 				Resolve:     deleteUser,
 			},
+			"login": &graphql.Field{
+				Args:        usernameArgs,
+				Type:        graphql.Boolean,
+				Description: "login account",
+				Resolve:     login,
+			},
+			"logout": &graphql.Field{
+				Type:        graphql.Boolean,
+				Description: "logout account",
+				Resolve:     logout,
+			},
 		},
 	})
 )
@@ -77,6 +97,13 @@ func init() {
 		// GraphiQL: !isProd,
 		Pretty:     !isProd,
 		Playground: !isProd,
+		ResultCallbackFn: func(ctx context.Context, params *graphql.Params, result *graphql.Result, responseBody []byte) {
+			//sess, _ := ctx.Value("sessions").(map[string]*sessions.Session)
+			//if sess["SID"].IsNew {
+			//	fmt.Println("save session *********")
+			//	sess["SID"].Save(r, w)
+			//}
+		},
 	})
 }
 
@@ -88,8 +115,26 @@ func Graphql(w http.ResponseWriter, r *http.Request) {
 	      resJSONError(w, http.StatusUnauthorized, constant.ErrorMsgUnAuth)
 	      return
 	  }*/
+	sess, err := config.SessionStore.Get(r, "SID")
+
+	if err != nil {
+		return
+	}
+
+	sessionMap := map[string]*sessions.Session{
+		"SID": sess,
+	}
+
+	collection := session.NewCollection(r, w, sessionMap)
+	ctx := session.NewCollectionContext(context.Background(), collection)
 
 	//ctx := context.WithValue(context.Background(), constant.JWTContextKey, user)
-	ctx := context.WithValue(context.Background(), "user", "key")
+	//key := "sessions"
+	//ctx := context.WithValue(context.Background(), &key, sesss)
 	handler.ContextHandler(ctx, w, r)
+
+	//if sess.IsNew {
+	//	fmt.Println("save session *********")
+	//	sess.Save(r, w)
+	//}
 }

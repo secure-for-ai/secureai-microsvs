@@ -125,26 +125,26 @@ func (h StdCookieHandler) Decode(c *http.Cookie, sess *sessions.Session, store *
 // StoreEngine provides an interface hook for alternative session value storage such as
 // redis, postgres, mysql, etc
 type StoreEngine interface {
-	load(key string) ([]byte, error)
-	save(key string, value []byte, duration time.Duration) error
-	delete(key string) error
+	load(ctx context.Context, key string) ([]byte, error)
+	save(ctx context.Context, key string, value []byte, duration time.Duration) error
+	delete(ctx context.Context, key string) error
 }
 
 type RedisStoreEngine struct {
 	RedisClient *cache.RedisClient
 }
 
-func (r *RedisStoreEngine) load(key string) ([]byte, error) {
-	return r.RedisClient.GetBytes(context.Background(), key)
+func (r *RedisStoreEngine) load(ctx context.Context, key string) ([]byte, error) {
+	return r.RedisClient.GetBytes(ctx, key)
 }
 
-func (r *RedisStoreEngine) save(key string, value []byte, duration time.Duration) error {
-	_, err := r.RedisClient.Set(context.Background(), key, value, duration)
+func (r *RedisStoreEngine) save(ctx context.Context, key string, value []byte, duration time.Duration) error {
+	_, err := r.RedisClient.Set(ctx, key, value, duration)
 	return err
 }
 
-func (r *RedisStoreEngine) delete(key string) error {
-	_, err := r.RedisClient.Del(context.Background(), key)
+func (r *RedisStoreEngine) delete(ctx context.Context, key string) error {
+	_, err := r.RedisClient.Del(ctx, key)
 	return err
 }
 
@@ -253,10 +253,12 @@ func (s *HybridStore) New(r *http.Request, name string) (*sessions.Session, erro
 	session.Options = &options
 	session.IsNew = true
 
+	// it will not look up the storage if cookie not find
 	if c, errCookie := r.Cookie(name); errCookie == nil {
+		fmt.Println("find cookie", name)
 		err = s.cookieHandler.Decode(c, session, s)
 		if err == nil {
-			ok, err = s.load(session)
+			ok, err = s.load(r.Context(), session)
 			fmt.Println("New session value", session.Values)
 			session.IsNew = !(err == nil && ok) // not new if no error and data available
 		}
@@ -271,7 +273,7 @@ func (s *HybridStore) New(r *http.Request, name string) (*sessions.Session, erro
 func (s *HybridStore) Save(r *http.Request, w http.ResponseWriter, session *sessions.Session) error {
 	// Marked for deletion.
 	if session.Options.MaxAge <= 0 {
-		if err := s.delete(session); err != nil {
+		if err := s.delete(r.Context(), session); err != nil {
 			return err
 		}
 		http.SetCookie(w, sessions.NewCookie(session.Name(), "", session.Options))
@@ -283,7 +285,7 @@ func (s *HybridStore) Save(r *http.Request, w http.ResponseWriter, session *sess
 				return err
 			}
 		}
-		if err := s.save(session); err != nil {
+		if err := s.save(r.Context(), session); err != nil {
 			return err
 		}
 		encoded, err := s.cookieHandler.Encode(session, s)
@@ -292,6 +294,7 @@ func (s *HybridStore) Save(r *http.Request, w http.ResponseWriter, session *sess
 			return err
 		}
 
+		fmt.Println("set session cookie")
 		http.SetCookie(w, sessions.NewCookie(session.Name(), encoded, session.Options))
 	}
 
@@ -299,7 +302,7 @@ func (s *HybridStore) Save(r *http.Request, w http.ResponseWriter, session *sess
 }
 
 // save stores the session in redis.
-func (s *HybridStore) save(session *sessions.Session) error {
+func (s *HybridStore) save(ctx context.Context, session *sessions.Session) error {
 	data, err := s.serializer.Serialize(session)
 	fmt.Println("save session value", session.Values)
 	fmt.Println("save session serial", data)
@@ -317,15 +320,15 @@ func (s *HybridStore) save(session *sessions.Session) error {
 		age = s.Options.MaxAge
 	}
 	fmt.Println("save ID", s.keyPrefix+session.ID)
-	err = s.Storage.save(s.keyPrefix+session.ID, data, time.Duration(age)*time.Second)
+	err = s.Storage.save(ctx, s.keyPrefix+session.ID, data, time.Duration(age)*time.Second)
 	fmt.Println("save err", err)
 	return err
 }
 
 // load reads the session from redis.
 // returns true if there is a sessoin data in DB
-func (s *HybridStore) load(session *sessions.Session) (bool, error) {
-	data, err := s.Storage.load(s.keyPrefix + session.ID)
+func (s *HybridStore) load(ctx context.Context, session *sessions.Session) (bool, error) {
+	data, err := s.Storage.load(ctx, s.keyPrefix+session.ID)
 	fmt.Println("load session id", s.keyPrefix+session.ID)
 	fmt.Println("load", data)
 	if err != nil {
@@ -340,6 +343,94 @@ func (s *HybridStore) load(session *sessions.Session) (bool, error) {
 }
 
 // delete removes keys from redis if MaxAge<0
-func (s *HybridStore) delete(session *sessions.Session) error {
-	return s.Storage.delete(s.keyPrefix + session.ID)
+func (s *HybridStore) delete(ctx context.Context, session *sessions.Session) error {
+	return s.Storage.delete(ctx, s.keyPrefix+session.ID)
+}
+
+// contextKey is the type used to store the registry in the context.
+type contextKey int
+
+// collectionKey is the key used to store the registry in the context.
+const collectionKey contextKey = 0
+
+// Collection stores sessions used during a request.
+type Collection struct {
+	request  *http.Request
+	writer   http.ResponseWriter
+	sessions map[string]*sessions.Session
+}
+
+func errorSessionNotExist(name string) error {
+	return fmt.Errorf("sessions: error session %s not exist", name)
+}
+
+func (s *Collection) Get(name string) (session *sessions.Session, err error) {
+	session, ok := s.sessions[name]
+	if !ok {
+		return nil, errorSessionNotExist(name)
+	}
+	return session, nil
+}
+
+func (s *Collection) UpdateValue(name string, key, value interface{}) error {
+	session, ok := s.sessions[name]
+	if !ok {
+		return errorSessionNotExist(name)
+	}
+	session.Values[key] = value
+	session.IsNew = true
+	return nil
+}
+
+func (s *Collection) MaxAge(name string, age int) error {
+	session, ok := s.sessions[name]
+	if !ok {
+		return errorSessionNotExist(name)
+	}
+
+	session.Options.MaxAge = age
+	session.IsNew = true
+	return nil
+}
+
+func (s *Collection) Save(name string) error {
+	session, ok := s.sessions[name]
+	if !ok {
+		return fmt.Errorf("sessions: error session %s not exist", name)
+	}
+	return session.Save(s.request, s.writer)
+}
+
+func (s *Collection) SaveAll(name string) error {
+	var errMulti util.MultiError
+	for name, session := range s.sessions {
+		if err := session.Save(s.request, s.writer); err != nil {
+			errMulti = append(errMulti, fmt.Errorf(
+				"sessions: error saving session %q -- %v", name, err))
+		}
+	}
+
+	if errMulti != nil {
+		return errMulti
+	}
+	return nil
+}
+
+func NewCollection(r *http.Request, w http.ResponseWriter, sessions map[string]*sessions.Session) *Collection {
+	return &Collection{
+		request:  r,
+		writer:   w,
+		sessions: sessions,
+	}
+}
+
+// NewContext returns a new Context that carries value u.
+func NewCollectionContext(ctx context.Context, s *Collection) context.Context {
+	return context.WithValue(ctx, collectionKey, s)
+}
+
+// FromContext returns the User value stored in ctx, if any.
+func FromCollectionContext(ctx context.Context) (*Collection, bool) {
+	s, ok := ctx.Value(collectionKey).(*Collection)
+	return s, ok
 }

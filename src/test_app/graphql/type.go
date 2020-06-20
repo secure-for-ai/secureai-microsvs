@@ -14,6 +14,13 @@ var idArgs = graphql.FieldConfigArgument{
 	},
 }
 
+var usernameArgs = graphql.FieldConfigArgument{
+	"username": &graphql.ArgumentConfig{
+		Description: "username",
+		Type:        graphql.String,
+	},
+}
+
 var userArgs = graphql.FieldConfigArgument{
 	"uid": &graphql.ArgumentConfig{
 		Type:        graphql.String,
