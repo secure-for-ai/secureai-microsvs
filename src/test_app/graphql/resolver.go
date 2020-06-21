@@ -127,7 +127,8 @@ func login(p graphql.ResolveParams) (interface{}, error) {
 		err  error
 	)
 	username, _ := p.Args["username"].(string)
-	collection, ok := session.FromCollectionContext(p.Context)
+	source := p.Source.(map[string]interface{})
+	collection, ok := source["session"].(*session.Collection)
 
 	if !ok {
 		return false, constant.ErrSession
@@ -146,7 +147,8 @@ func login(p graphql.ResolveParams) (interface{}, error) {
 }
 
 func logout(p graphql.ResolveParams) (interface{}, error) {
-	collection, ok := session.FromCollectionContext(p.Context)
+	source := p.Source.(map[string]interface{})
+	collection, ok := source["session"].(*session.Collection)
 
 	if !ok {
 		return false, constant.ErrSession
@@ -163,15 +165,11 @@ func logout(p graphql.ResolveParams) (interface{}, error) {
 }
 
 func checkLogin(p graphql.ResolveParams) (interface{}, error) {
-	fmt.Println(p.Info.RootValue.(map[string]interface{})["uid"])
-	collection, ok := session.FromCollectionContext(p.Context)
+	fmt.Println(p.Args)
+	source := p.Source.(map[string]interface{})
 
-	if !ok {
-		return false, constant.ErrSession
-	}
-
-	s, _ := collection.Get("SID")
-	if userInfo, ok := s.Values["userInfo"]; ok {
+	if userInfo, ok := source["userInfo"]; ok {
+		fmt.Println("login uid", source["uid"])
 		return userInfo, nil
 	}
 

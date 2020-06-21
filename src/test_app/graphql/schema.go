@@ -101,12 +101,9 @@ func init() {
 		RootObjectFn: func(ctx context.Context, r *http.Request) map[string]interface{} {
 			root := map[string]interface{}{}
 
-			collection, ok := session.FromCollectionContext(ctx)
+			collection, _ := session.FromCollectionContext(ctx)
 
-			if !ok {
-				return nil
-			}
-
+			root["session"] = collection
 			s, _ := collection.Get("SID")
 
 			userInfo, ok := s.Values["userInfo"]
@@ -116,11 +113,10 @@ func init() {
 			}
 
 			root["uid"] = userInfo.(model.UserInfo).UID
+			root["userInfo"] = userInfo.(model.UserInfo)
+			root["role"] = []string{"user", "manager", "admin"}
 			return root
 
-			//map[string]interface{}{
-			//				"uid": s.Values["userInfo"].(model.UserInfo).UID,
-			//			}
 		},
 		ResultCallbackFn: func(ctx context.Context, params *graphql.Params, result *graphql.Result, responseBody []byte) {
 			//sess, _ := ctx.Value("sessions").(map[string]*sessions.Session)
@@ -133,13 +129,6 @@ func init() {
 }
 
 func Graphql(w http.ResponseWriter, r *http.Request) {
-	/* jwt */
-	/*token := r.Header.Get("Authorization")
-	  user, ok := validateJWT(token)
-	  if !ok && isProd {
-	      resJSONError(w, http.StatusUnauthorized, constant.ErrorMsgUnAuth)
-	      return
-	  }*/
 	sess, err := config.SessionStore.Get(r, "SID")
 
 	if err != nil {
@@ -153,13 +142,5 @@ func Graphql(w http.ResponseWriter, r *http.Request) {
 	collection := session.NewCollection(r, w, sessionMap)
 	ctx := session.NewCollectionContext(context.Background(), collection)
 
-	//ctx := context.WithValue(context.Background(), constant.JWTContextKey, user)
-	//key := "sessions"
-	//ctx := context.WithValue(context.Background(), &key, sesss)
 	handler.ContextHandler(ctx, w, r)
-
-	//if sess.IsNew {
-	//	fmt.Println("save session *********")
-	//	sess.Save(r, w)
-	//}
 }
