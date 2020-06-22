@@ -109,14 +109,16 @@ type CookieHandler interface {
 }
 
 // Secure cookie handler
-type SecureCookieHandler struct{}
+type SecureCookieHandler struct {
+	Codecs []securecookie.Codec
+}
 
 func (h SecureCookieHandler) Encode(sess *sessions.Session, store *HybridStore) (string, error) {
-	return securecookie.EncodeMulti(sess.Name(), sess.ID, store.Codecs...)
+	return securecookie.EncodeMulti(sess.Name(), sess.ID, h.Codecs...)
 }
 
 func (h SecureCookieHandler) Decode(c *http.Cookie, sess *sessions.Session, store *HybridStore) error {
-	return securecookie.DecodeMulti(c.Name, c.Value, &sess.ID, store.Codecs...)
+	return securecookie.DecodeMulti(c.Name, c.Value, &sess.ID, h.Codecs...)
 }
 
 // Standard cookie handler
@@ -178,7 +180,6 @@ type HybridStoreConf struct {
 
 type HybridStore struct {
 	Storage       StoreEngine
-	Codecs        []securecookie.Codec
 	Options       *sessions.Options // default configuration
 	idLength      int
 	keyPrefix     string
@@ -208,16 +209,6 @@ func NewSessionStore(storage StoreEngine, conf *HybridStoreConf) *HybridStore {
 		serializer = JSONSerializer{}
 	}
 
-	// config cookie encode/decode handler
-	switch conf.CookieHandler {
-	case "standard":
-		cookieHandler = StdCookieHandler{}
-	case "std":
-		cookieHandler = StdCookieHandler{}
-	case "secure":
-		cookieHandler = SecureCookieHandler{}
-	}
-
 	// initial cookie Options
 	Options := sessions.Options{
 		Path:   "/",
@@ -227,24 +218,35 @@ func NewSessionStore(storage StoreEngine, conf *HybridStoreConf) *HybridStore {
 		Options = *conf.Options
 	}
 
-	// initial keyPairs
-	keyPairs := make([][]byte, len(conf.KeyPairs))
-	for i, v := range conf.KeyPairs {
-		keyPairs[i], _ = util.Base64Decode(v)
-	}
-	codecs := securecookie.CodecsFromPairs(keyPairs...)
+	// config cookie encode/decode handler
+	switch conf.CookieHandler {
+	case "standard":
+		cookieHandler = StdCookieHandler{}
+	case "std":
+		cookieHandler = StdCookieHandler{}
+	case "secure":
+		// initial keyPairs
+		keyPairs := make([][]byte, len(conf.KeyPairs))
+		for i, v := range conf.KeyPairs {
+			keyPairs[i], _ = util.Base64Decode(v)
+		}
+		codecs := securecookie.CodecsFromPairs(keyPairs...)
 
-	for _, s := range codecs {
-		if cookie, ok := s.(*securecookie.SecureCookie); ok {
-			cookie.MaxAge(Options.MaxAge)
-			//cookie.SetSerializer(securecookie.JSONEncoder{})
-			//cookie.HashFunc(sha512.New512_256)
+		for _, s := range codecs {
+			if cookie, ok := s.(*securecookie.SecureCookie); ok {
+				cookie.MaxAge(Options.MaxAge)
+				//cookie.SetSerializer(securecookie.JSONEncoder{})
+				//cookie.HashFunc(sha512.New512_256)
+			}
+		}
+		cookieHandler = SecureCookieHandler{
+			Codecs: codecs,
 		}
 	}
+
 	// initial session store
 	store := &HybridStore{
 		Storage:       storage,
-		Codecs:        codecs,
 		Options:       &Options,
 		idLength:      conf.IdLength,
 		keyPrefix:     conf.KeyPrefix,
