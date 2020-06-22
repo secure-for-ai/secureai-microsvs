@@ -2,6 +2,7 @@ package graphql
 
 import (
 	"context"
+	"encoding/json"
 	"github.com/gorilla/sessions"
 	"github.com/graphql-go/graphql"
 	gh "github.com/graphql-go/handler"
@@ -131,7 +132,41 @@ func init() {
 func Graphql(w http.ResponseWriter, r *http.Request) {
 	sess, err := config.SessionStore.Get(r, "SID")
 
+	// something wrong with backend redis and database,
+	// sent alert for maintenance
 	if err != nil {
+		var (
+			returnCode int
+			returnVal  map[string]interface{}
+		)
+		switch err {
+		// get unexpected session, either malicious session.ID,
+		// or session got lost in out database. In most cases,
+		// it would be malicious cases.
+		case session.ErrNil:
+			fallthrough
+		case session.ErrInvalidCookie:
+			sess.Options.MaxAge = -1
+			_ = sess.Save(r, w)
+
+			returnVal = map[string]interface{}{
+				"message":  "Not Authorized",
+				"redirect": "http://localhost/login",
+			}
+			returnCode = 401
+
+		case session.ErrStoreFail:
+			fallthrough
+		default:
+			returnVal = map[string]interface{}{
+				"message":  "Server Internal Error",
+				"redirect": "http://localhost/Error/500",
+			}
+			returnCode = 500
+		}
+
+		returnStr, _ := json.Marshal(returnVal)
+		http.Error(w, string(returnStr), returnCode)
 		return
 	}
 

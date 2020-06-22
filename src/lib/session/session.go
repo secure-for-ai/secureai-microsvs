@@ -6,6 +6,7 @@ import (
 	"encoding/gob"
 	"encoding/json"
 	"fmt"
+	"github.com/go-redis/redis/v8"
 	"github.com/gorilla/securecookie"
 	"github.com/gorilla/sessions"
 	"net/http"
@@ -16,6 +17,14 @@ import (
 
 // Amount of time for cookies/redis keys to expire.
 var sessionExpire = 86400 * 30
+
+var ErrNil = StoreError("session: not found")
+var ErrInvalidCookie = StoreError("session: invalid session ID")
+var ErrStoreFail = StoreError("session: storage fail")
+
+type StoreError string
+
+func (e StoreError) Error() string { return string(e) }
 
 // DataSerializer provides an interface hook for alternative serializers
 type DataSerializer interface {
@@ -135,7 +144,16 @@ type RedisStoreEngine struct {
 }
 
 func (r *RedisStoreEngine) load(ctx context.Context, key string) ([]byte, error) {
-	return r.RedisClient.GetBytes(ctx, key)
+	data, err := r.RedisClient.GetBytes(ctx, key)
+	if err != nil {
+		switch err {
+		case redis.Nil:
+			return nil, ErrNil
+		default:
+			return nil, ErrStoreFail
+		}
+	}
+	return data, nil
 }
 
 func (r *RedisStoreEngine) save(ctx context.Context, key string, value []byte, duration time.Duration) error {
@@ -242,6 +260,15 @@ func (s *HybridStore) Get(r *http.Request, name string) (*sessions.Session, erro
 	return sessions.GetRegistry(r).Get(s, name)
 }
 
+// Create a new session by searching cookie name
+//
+// Return value:
+//   - a new session if given cookie name is not found, no error. Session.ID is an empty string
+//   - load an exist session if given cookie name is found, and the key value corresponding to
+//     the session is found in our database
+//   - return nil, ErrNil if given cookie name is found but the key value corresponding to
+//     the session does not exist in our database or the format of session ID is wrong
+//   - return nil, ErrStoreFail if there is something wrong with the backend storage
 func (s *HybridStore) New(r *http.Request, name string) (*sessions.Session, error) {
 	var (
 		err error
@@ -261,20 +288,30 @@ func (s *HybridStore) New(r *http.Request, name string) (*sessions.Session, erro
 			ok, err = s.load(r.Context(), session)
 			fmt.Println("New session value", session.Values)
 			session.IsNew = !(err == nil && ok) // not new if no error and data available
+		} else {
+			err = ErrInvalidCookie
+		}
+
+		// there is error for either decoding or loading session, reset session ID to empty
+		if err != nil {
+			session.ID = ""
 		}
 	}
-	//else {
-	//	err = errCookie
-	//}
 
 	return session, err
 }
 
+// Save the session to backend storage
+//   - If MaxAge <= 0, then use Set-Coolie Header to delete the cookie in client side.
+//   - If session ID does not exist, create a new session ID before saving.
 func (s *HybridStore) Save(r *http.Request, w http.ResponseWriter, session *sessions.Session) error {
 	// Marked for deletion.
 	if session.Options.MaxAge <= 0 {
-		if err := s.delete(r.Context(), session); err != nil {
-			return err
+		// delete the cookie in the database only if session.ID is set.
+		if session.ID != "" {
+			if err := s.delete(r.Context(), session); err != nil {
+				return err
+			}
 		}
 		http.SetCookie(w, sessions.NewCookie(session.Name(), "", session.Options))
 	} else {
@@ -331,6 +368,7 @@ func (s *HybridStore) load(ctx context.Context, session *sessions.Session) (bool
 	data, err := s.Storage.load(ctx, s.keyPrefix+session.ID)
 	fmt.Println("load session id", s.keyPrefix+session.ID)
 	fmt.Println("load", data)
+	fmt.Println("err", err)
 	if err != nil {
 		return false, err
 	}

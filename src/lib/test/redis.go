@@ -58,7 +58,7 @@ func main() {
 	result, err = redisClient.Get(ctx, "test")
 
 	if err != nil {
-		fmt.Println("cannot get", key)
+		fmt.Println("cannot get", key, err)
 	}
 
 	fmt.Println("get", key, result)
