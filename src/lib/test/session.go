@@ -24,7 +24,7 @@ var (
 		},
 		IdGenerator:   "base64",
 		Serializer:    "gob",
-		CookieHandler: "standard", // "secure",
+		CookieHandler: "standard", // "aes_gcm", // "secure",
 		// key must be 16, 24 or 32 bytes long (AES-128, AES-192 or AES-256), encoded in base64RawUrl
 		KeyPairs: []string{
 			"pR6kDdHYqNMRO74kUxFiGgpv3A6qKFeCY6IDHxDH8NY",

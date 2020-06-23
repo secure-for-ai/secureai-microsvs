@@ -132,6 +132,17 @@ func init() {
 func Graphql(w http.ResponseWriter, r *http.Request) {
 	sess, err := config.SessionStore.Get(r, "SID")
 
+	/*	if sess.ID == "" {
+			returnVal := map[string]interface{}{
+				"message":  "Not Authorized",
+				"redirect": "http://localhost/login",
+			}
+			returnCode := 401
+
+			returnStr, _ := json.Marshal(returnVal)
+			http.Error(w, string(returnStr), returnCode)
+		}
+	*/
 	// something wrong with backend redis and database,
 	// sent alert for maintenance
 	if err != nil {

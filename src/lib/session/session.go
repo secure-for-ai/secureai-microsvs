@@ -190,6 +190,7 @@ type HybridStore struct {
 
 func NewSessionStore(storage StoreEngine, conf *HybridStoreConf) *HybridStore {
 	var (
+		err           error
 		idGenerator   IdGenerator    = Base64ID{}
 		serializer    DataSerializer = GobSerializer{}
 		cookieHandler CookieHandler  = StdCookieHandler{}
@@ -228,7 +229,9 @@ func NewSessionStore(storage StoreEngine, conf *HybridStoreConf) *HybridStore {
 		// initial keyPairs
 		keyPairs := make([][]byte, len(conf.KeyPairs))
 		for i, v := range conf.KeyPairs {
-			keyPairs[i], _ = util.Base64Decode(v)
+			if keyPairs[i], err = util.Base64Decode(v); err != nil {
+				panic("Error: loading Invalid key for secure cookie handler.")
+			}
 		}
 		codecs := securecookie.CodecsFromPairs(keyPairs...)
 
@@ -241,6 +244,15 @@ func NewSessionStore(storage StoreEngine, conf *HybridStoreConf) *HybridStore {
 		}
 		cookieHandler = SecureCookieHandler{
 			Codecs: codecs,
+		}
+	case "aes_gcm":
+		encKey, err := util.Base64Decode(conf.KeyPairs[0])
+		if err != nil {
+			panic("Error: loading Invalid key for aes_gcm cookie handler.")
+		}
+		cookieHandler, err = NewAesGcmCookieHandler(encKey)
+		if err != nil {
+			panic("Create AES_GCM cookie handler fail: " + err.Error())
 		}
 	}
 
