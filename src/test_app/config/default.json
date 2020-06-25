@@ -32,5 +32,8 @@
     "KeyPairs": [
       "pR6kDdHYqNMRO74kUxFiGgpv3A6qKFeCY6IDHxDH8NY"
     ]
+  },
+  "AppInfo": {
+    "Env": "dev"
   }
 }

@@ -399,6 +399,16 @@ func (s *HybridStore) delete(ctx context.Context, session *sessions.Session) err
 	return s.Storage.delete(ctx, s.keyPrefix+session.ID)
 }
 
+// Get the idGenerator
+func (s *HybridStore) IdGenerator() IdGenerator {
+	return s.idGenerator
+}
+
+// Get the idLength of session store
+func (s *HybridStore) IdLength() int {
+	return s.idLength
+}
+
 // contextKey is the type used to store the registry in the context.
 type contextKey int
 

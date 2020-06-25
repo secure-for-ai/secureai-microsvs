@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"template2/lib/cache"
 	"template2/lib/session"
+	"template2/lib/util"
 
 	//"fmt"
 	"io/ioutil"
@@ -18,6 +19,7 @@ type Config struct {
 	MongoDB db.MongoDBConf
 	Redis   cache.RedisConf
 	Session session.HybridStoreConf
+	AppInfo util.AppInfo
 }
 
 var Conf *Config
@@ -38,6 +40,7 @@ func init() {
 	initSession()
 
 	log.Println("Over init")
+	log.Println("Env: ", Conf.AppInfo.Env)
 }
 
 func defaultConfPath(dir string) string {

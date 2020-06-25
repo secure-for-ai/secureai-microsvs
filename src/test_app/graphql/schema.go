@@ -3,11 +3,14 @@ package graphql
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"github.com/gorilla/sessions"
 	"github.com/graphql-go/graphql"
 	gh "github.com/graphql-go/handler"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 	"net/http"
 	"template2/lib/session"
+	"template2/lib/util"
 	"template2/test_app/config"
 	"template2/test_app/model"
 )
@@ -83,7 +86,105 @@ var (
 			},
 		},
 	})
+
+	isProd = true
+
+	gqInitializer initializer = prodInitializer{}
 )
+
+type initializer interface {
+	loadSession(w http.ResponseWriter, r *http.Request) *session.Collection
+}
+
+type prodInitializer struct{}
+
+func (prodInitializer) loadSession(w http.ResponseWriter, r *http.Request) *session.Collection {
+	sess, err := config.SessionStore.Get(r, "SID")
+
+	/*	if sess.ID == "" {
+			returnVal := map[string]interface{}{
+				"message":  "Not Authorized",
+				"redirect": "http://localhost/login",
+			}
+			returnCode := 401
+
+			returnStr, _ := json.Marshal(returnVal)
+			http.Error(w, string(returnStr), returnCode)
+		}
+	*/
+	// something wrong with backend redis and database,
+	// sent alert for maintenance
+	if err != nil {
+		fmt.Println(err)
+		var (
+			returnCode int
+			returnVal  map[string]interface{}
+		)
+		switch err {
+		// get unexpected session, either malicious session.ID,
+		// or session got lost in out database. In most cases,
+		// it would be malicious cases.
+		case session.ErrNil:
+			fallthrough
+		case session.ErrInvalidCookie:
+			fmt.Println(err)
+			sess.Options.MaxAge = -1
+			_ = sess.Save(r, w)
+
+			returnVal = map[string]interface{}{
+				"message":  "Not Authorized",
+				"redirect": "http://localhost/login",
+			}
+			returnCode = 401
+
+		case session.ErrStoreFail:
+			fallthrough
+		default:
+			returnVal = map[string]interface{}{
+				"message":  "Server Internal Error",
+				"redirect": "http://localhost/Error/500",
+			}
+			returnCode = 500
+		}
+
+		returnStr, _ := json.Marshal(returnVal)
+		http.Error(w, string(returnStr), returnCode)
+		return nil
+	}
+
+	sessionMap := map[string]*sessions.Session{
+		"SID": sess,
+	}
+
+	collection := session.NewCollection(r, w, sessionMap)
+
+	return collection
+}
+
+type devInitializer struct{}
+
+func (devInitializer) loadSession(w http.ResponseWriter, r *http.Request) *session.Collection {
+	sess, _ := config.SessionStore.Get(r, "SID")
+
+	sess.ID, _ = config.SessionStore.IdGenerator().Generate(config.SessionStore.IdLength())
+	sess.Values["userInfo"] = model.UserInfo{
+		UID:        primitive.ObjectID{},
+		Username:   "testUsername",
+		Nickname:   "testNickname",
+		Email:      "test@test.com",
+		CreateTime: 1400000,
+		UpdateTime: 1400000,
+	}
+
+	sessionMap := map[string]*sessions.Session{
+		"SID": sess,
+	}
+
+	collection := session.NewCollection(r, w, sessionMap)
+
+	return collection
+
+}
 
 func init() {
 	schemaConfig := graphql.SchemaConfig{
@@ -93,7 +194,21 @@ func init() {
 
 	schema, _ := graphql.NewSchema(schemaConfig)
 
-	isProd := false
+	switch config.Conf.AppInfo.Env {
+	case util.AppEnvProd:
+		gqInitializer = prodInitializer{}
+		isProd = true
+	case util.AppEnvTest:
+		gqInitializer = prodInitializer{}
+		isProd = false
+	case util.AppEnvDev:
+		gqInitializer = devInitializer{}
+		isProd = false
+	default:
+		gqInitializer = devInitializer{}
+		isProd = false
+	}
+
 	handler = gh.New(&gh.Config{
 		Schema: &schema,
 		// GraphiQL: !isProd,
@@ -130,62 +245,12 @@ func init() {
 }
 
 func Graphql(w http.ResponseWriter, r *http.Request) {
-	sess, err := config.SessionStore.Get(r, "SID")
+	collection := gqInitializer.loadSession(w, r)
 
-	/*	if sess.ID == "" {
-			returnVal := map[string]interface{}{
-				"message":  "Not Authorized",
-				"redirect": "http://localhost/login",
-			}
-			returnCode := 401
-
-			returnStr, _ := json.Marshal(returnVal)
-			http.Error(w, string(returnStr), returnCode)
-		}
-	*/
-	// something wrong with backend redis and database,
-	// sent alert for maintenance
-	if err != nil {
-		var (
-			returnCode int
-			returnVal  map[string]interface{}
-		)
-		switch err {
-		// get unexpected session, either malicious session.ID,
-		// or session got lost in out database. In most cases,
-		// it would be malicious cases.
-		case session.ErrNil:
-			fallthrough
-		case session.ErrInvalidCookie:
-			sess.Options.MaxAge = -1
-			_ = sess.Save(r, w)
-
-			returnVal = map[string]interface{}{
-				"message":  "Not Authorized",
-				"redirect": "http://localhost/login",
-			}
-			returnCode = 401
-
-		case session.ErrStoreFail:
-			fallthrough
-		default:
-			returnVal = map[string]interface{}{
-				"message":  "Server Internal Error",
-				"redirect": "http://localhost/Error/500",
-			}
-			returnCode = 500
-		}
-
-		returnStr, _ := json.Marshal(returnVal)
-		http.Error(w, string(returnStr), returnCode)
+	if collection == nil {
 		return
 	}
 
-	sessionMap := map[string]*sessions.Session{
-		"SID": sess,
-	}
-
-	collection := session.NewCollection(r, w, sessionMap)
 	ctx := session.NewCollectionContext(context.Background(), collection)
 
 	handler.ContextHandler(ctx, w, r)

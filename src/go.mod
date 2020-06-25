@@ -3,8 +3,6 @@ module template2
 go 1.14
 
 require (
-	github.com/adyen/adyen-go-api-library v1.0.1
-	github.com/garyburd/redigo v1.6.0
 	github.com/go-redis/redis/v8 v8.0.0-beta.4
 	github.com/gofrs/uuid v3.3.0+incompatible // indirect
 	github.com/gorilla/securecookie v1.1.1
