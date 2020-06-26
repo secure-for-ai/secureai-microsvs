@@ -66,6 +66,13 @@ func (h AesGcmCookieHandler) Decode(c *http.Cookie, sess *sessions.Session, stor
 		return err
 	}
 
+	// check cipherText format
+	// cipherText must contain 12 byte initial vector + 16 byte tag
+	// Todo dynamic configurable initial vector size + tag size
+	if len(ciperText) < 28 {
+		return ErrInvalidCookie
+	}
+
 	plainText, err := h.ahead.Open(nil, ciperText[0:12], ciperText[12:], nil)
 
 	if err != nil {
@@ -74,6 +81,13 @@ func (h AesGcmCookieHandler) Decode(c *http.Cookie, sess *sessions.Session, stor
 	}
 
 	plainTextLen := len(plainText)
+
+	// check plainText format
+	// plaintext contains 8 bytes timestamp plus random session ID
+	if plainTextLen < 9 {
+		return ErrInvalidCookie
+	}
+
 	timestamp := int64(binary.LittleEndian.Uint64(plainText[plainTextLen-8:]))
 
 	currentTime := util.GetNowTimestamp()

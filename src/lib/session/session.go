@@ -320,7 +320,7 @@ func (s *HybridStore) New(r *http.Request, name string) (*sessions.Session, erro
 //   - If session ID does not exist, create a new session ID before saving.
 func (s *HybridStore) Save(r *http.Request, w http.ResponseWriter, session *sessions.Session) error {
 	// Marked for deletion.
-	if session.Options.MaxAge <= 0 {
+	if session.Options.MaxAge < 0 {
 		// delete the cookie in the database only if session.ID is set.
 		if session.ID != "" {
 			if err := s.delete(r.Context(), session); err != nil {

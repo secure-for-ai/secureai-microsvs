@@ -138,6 +138,7 @@ func login(p graphql.ResolveParams) (interface{}, error) {
 	}
 
 	_ = collection.UpdateValue("SID", "userInfo", user)
+	//_ = collection.MaxAge("SID", 0)
 	err = collection.Save("SID")
 
 	if err != nil {
