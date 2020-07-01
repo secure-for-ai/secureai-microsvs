@@ -91,7 +91,7 @@ func coerceInt64(value interface{}) interface{} {
 		if value > uint64(math.MaxInt64) {
 			return nil
 		}
-		return int(value)
+		return int64(value)
 	case *uint64:
 		if value == nil {
 			return nil
@@ -101,7 +101,7 @@ func coerceInt64(value interface{}) interface{} {
 		if value < float32(math.MinInt64) || value > float32(math.MaxInt64) {
 			return nil
 		}
-		return int(value)
+		return int64(value)
 	case *float32:
 		if value == nil {
 			return nil
@@ -111,7 +111,7 @@ func coerceInt64(value interface{}) interface{} {
 		if value < float64(math.MinInt64) || value > float64(math.MaxInt64) {
 			return nil
 		}
-		return int(value)
+		return int64(value)
 	case *float64:
 		if value == nil {
 			return nil
@@ -137,7 +137,7 @@ func coerceInt64(value interface{}) interface{} {
 
 // Int is the GraphQL Integer type definition.
 var Int64 = graphql.NewScalar(graphql.ScalarConfig{
-	Name: "Int",
+	Name: "Int64",
 	Description: "The `Int` scalar type represents non-fractional signed whole numeric " +
 		"values. Int can represent values between -(2^31) and 2^31 - 1. ",
 	Serialize:  coerceInt64,

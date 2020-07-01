@@ -16,6 +16,17 @@ services:
       - ENV=prod
     container_name: gtemplate-dev-api
     entrypoint: go run test_app/main.go
+  postgres:
+    image: postgres:12
+    ports:
+      - "7000:5432"
+    volumes:
+      - ./data/postgres:/var/lib/postgresql/data
+    environment:
+      - POSTGRES_PASSWORD=password
+      - POSTGRES_USER=test
+      - POSTGRES_DB=test
+    container_name: gtemplate-dev-postgres
   mongo:
     image: mongo:4.2.6
     ports:
