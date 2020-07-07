@@ -371,7 +371,7 @@ func (s *HybridStore) save(ctx context.Context, session *sessions.Session) error
 		age = s.Options.MaxAge
 	}
 	fmt.Println("save ID", s.keyPrefix+session.ID)
-	err = s.Storage.save(ctx, s.keyPrefix+session.ID, data, time.Duration(age)*time.Second)
+	err = s.Storage.save(ctx, s.keyPrefix+session.ID, data, time.Duration(age))
 	fmt.Println("save err", err)
 	return err
 }

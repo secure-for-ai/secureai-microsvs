@@ -161,7 +161,7 @@ func (c *RedisClient) GetTime(ctx context.Context, key string) (time.Time, error
 // See https://redis.io/commands/set
 func (c *RedisClient) Set(ctx context.Context, key string,
 	value interface{}, expiration time.Duration) (string, error) {
-	return c.rdb.Set(ctx, key, value, expiration).Result()
+	return c.rdb.Set(ctx, key, value, expiration*time.Second).Result()
 }
 
 // Set key to hold string value if key does not exist. In that case,
