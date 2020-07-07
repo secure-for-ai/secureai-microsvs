@@ -177,7 +177,7 @@ func (c *RedisClient) Set(ctx context.Context, key string,
 // See https://redis.io/commands/setnx
 func (c *RedisClient) SetNX(ctx context.Context, key string,
 	value interface{}, expiration time.Duration) (bool, error) {
-	return c.rdb.SetNX(ctx, key, value, expiration).Result()
+	return c.rdb.SetNX(ctx, key, value, expiration*time.Second).Result()
 }
 
 // Increments the number stored at key by one. If the key does not exist,
