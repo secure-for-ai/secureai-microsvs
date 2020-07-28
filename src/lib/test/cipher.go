@@ -6,7 +6,7 @@ import (
 )
 
 var (
-	key, _    = util.Base64Decode("pR6kDdHYqNMRO74kUxFiGgpv3A6qKFeCY6IDHxDH8NY")
+	key       = "pR6kDdHYqNMRO74kUxFiGgpv3A6qKFeCY6IDHxDH8NY"
 	cipher, _ = util.NewAesGcmCipher(key)
 	plainText = "hello world"
 )

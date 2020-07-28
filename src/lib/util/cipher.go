@@ -12,8 +12,12 @@ type AesGcmCipher struct {
 	ahead cipher.AEAD
 }
 
-func NewAesGcmCipher(encKey []byte) (*AesGcmCipher, error) {
-	c, err := aes.NewCipher(encKey)
+func NewAesGcmCipher(encKey string) (*AesGcmCipher, error) {
+	encKeyBin, err := Base64Decode(encKey)
+	if err != nil {
+		return nil, err
+	}
+	c, err := aes.NewCipher(encKeyBin)
 	if err != nil {
 		return nil, err
 	}
