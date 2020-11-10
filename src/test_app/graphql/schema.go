@@ -152,6 +152,10 @@ func (prodInitializer) loadSession(w http.ResponseWriter, r *http.Request) *sess
 		return nil
 	}
 
+	if sess.ID == "" {
+
+	}
+
 	sessionMap := map[string]*sessions.Session{
 		"SID": sess,
 	}
