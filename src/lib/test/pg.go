@@ -14,7 +14,7 @@ func initPG() {
 	conf := db.PGPoolConf{
 		Host:   "localhost",
 		Port:   "7000",
-		DBName: "postgres",
+		DBName: "test",
 		User:   "test",
 		PW:     "password",
 	}
