@@ -12,7 +12,9 @@ services:
     depends_on:
       - redis
       - mongo
+      - postgres
     environment:
+      - GOPROXY=https://goproxy.cn
       - ENV=prod
     container_name: gtemplate-dev-api
     entrypoint: go run test_app/main.go
