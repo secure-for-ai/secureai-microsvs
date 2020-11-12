@@ -22,6 +22,7 @@ services:
       - "7000:5432"
     volumes:
       - ./data/postgres:/var/lib/postgresql/data
+      - ./pg-init.sql:/docker-entrypoint-initdb.d/init.sql
     environment:
       - POSTGRES_PASSWORD=password
       - POSTGRES_USER=test

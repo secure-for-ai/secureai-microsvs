@@ -7,6 +7,8 @@ import (
 	"reflect"
 )
 
+var ErrFindNil = PGError("pg: row not found")
+
 func getFieldMap(t reflect.Type, rowFields []pgproto3.FieldDescription) []int {
 	tNumField := t.NumField()
 	// map the field name to field index for a struct
@@ -99,6 +101,8 @@ func StructScanOne(rows pgx.Rows, dest interface{}) error {
 		if err != nil {
 			return err
 		}
+	} else {
+		return ErrFindNil
 	}
 
 	baseValue.Set(v)

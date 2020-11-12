@@ -3,12 +3,9 @@ package db
 import (
 	"context"
 	"fmt"
-	"github.com/jackc/pgconn"
 	"github.com/jackc/pgx/v4"
 	//"github.com/jackc/pgx/v4/log/log15adapter"
 	"github.com/jackc/pgx/v4/pgxpool"
-	//"go.mongodb.org/mongo-driver/mongo"
-	//"os"
 )
 
 //user=jack password=secret host=pg.example.com port=5432 dbname=mydb
@@ -19,6 +16,10 @@ type PGPoolConf struct {
 	User   string `json:"User"`
 	PW     string `json:"PW"`
 }
+
+type PGError string
+
+func (e PGError) Error() string { return string(e) }
 
 func (c PGPoolConf) GetPGDSN() string {
 	pgDSN := fmt.Sprintf("user=%s password=%s host=%s port=%s dbname=%s",
@@ -35,84 +36,65 @@ func NewPGClient(conf PGPoolConf) (client *PGClient, err error) {
 	//config.Logger = log15adapter.NewLogger(log.New("module", "pgx"))
 
 	_client, err := pgxpool.ConnectConfig(context.Background(), config)
-	return &PGClient{client: _client}, err
+	if err != nil {
+		return nil, err
+	}
+	return &PGClient{*_client}, err
 }
 
 type PGClient struct {
-	client *pgxpool.Pool
+	pgxpool.Pool
 }
 
 func (p *PGClient) GetConn(ctx context.Context) (*PGConn, error) {
-	conn, err := p.client.Acquire(ctx)
+	conn, err := p.Acquire(ctx)
 	if err != nil {
 		return nil, err
 	}
 
-	return &PGConn{conn: conn}, nil
+	return &PGConn{*conn}, nil
+}
+
+func (p *PGClient) Begin(ctx context.Context) (*PGTx, error) {
+	return p.BeginTx(ctx, pgx.TxOptions{})
+}
+
+func (p *PGClient) BeginTx(ctx context.Context, txOptions pgx.TxOptions) (*PGTx, error) {
+	tx, err := p.Pool.BeginTx(ctx, txOptions)
+
+	if err != nil {
+		return nil, err
+	}
+
+	return &PGTx{*(tx.(*pgxpool.Tx))}, err
 }
 
 type PGConn struct {
-	conn *pgxpool.Conn
+	pgxpool.Conn
 }
 
-func (c *PGConn) Release() {
-	c.conn.Release()
-}
-
-func (c *PGConn) Exec(ctx context.Context, sql string, arguments ...interface{}) (pgconn.CommandTag, error) {
-	return c.conn.Exec(ctx, sql, arguments...)
-}
-
-func (c *PGConn) Query(ctx context.Context, sql string, args ...interface{}) (pgx.Rows, error) {
-	return c.conn.Query(ctx, sql, args...)
-}
-
-func (c *PGConn) QueryRow(ctx context.Context, sql string, args ...interface{}) pgx.Row {
-	return c.conn.QueryRow(ctx, sql, args...)
-}
-
-func (c *PGConn) SendBatch(ctx context.Context, b *pgx.Batch) pgx.BatchResults {
-	return c.conn.SendBatch(ctx, b)
-}
-
-func (c *PGConn) CopyFrom(ctx context.Context, tableName pgx.Identifier, columnNames []string, rowSrc pgx.CopyFromSource) (int64, error) {
-	return c.conn.CopyFrom(ctx, tableName, columnNames, rowSrc)
-}
-
-func (c *PGConn) Begin(ctx context.Context) (pgx.Tx, error) {
-	return c.conn.Begin(ctx)
-}
-
-func (c *PGConn) BeginTx(ctx context.Context, txOptions pgx.TxOptions) (pgx.Tx, error) {
-	return c.conn.BeginTx(ctx, txOptions)
-}
-
-func (c *PGConn) InsertOne(ctx context.Context, sql string, args ...interface{}) (int64, error) {
-	commandTag, err := c.conn.Exec(ctx, sql, args...)
+func (c *PGConn) ExecRow(ctx context.Context, sql string, args ...interface{}) (int64, error) {
+	commandTag, err := c.Exec(ctx, sql, args...)
 	if err != nil {
 		return 0, err
 	}
 	return commandTag.RowsAffected(), err
 }
 
-func (c *PGConn) UpdateOne(ctx context.Context, sql string, args ...interface{}) (int64, error) {
-	commandTag, err := c.conn.Exec(ctx, sql, args...)
-	if err != nil {
-		return 0, err
-	}
-	return commandTag.RowsAffected(), err
+func (c *PGConn) Insert(ctx context.Context, sql string, args ...interface{}) (int64, error) {
+	return c.ExecRow(ctx, sql, args...)
 }
 
-func (c *PGConn) DeleteOne(ctx context.Context, sql string, args ...interface{}) (int64, error) {
-	commandTag, err := c.conn.Exec(ctx, sql, args...)
-	if err != nil {
-		return 0, err
-	}
-	return commandTag.RowsAffected(), err
+func (c *PGConn) Update(ctx context.Context, sql string, args ...interface{}) (int64, error) {
+	return c.ExecRow(ctx, sql, args...)
+}
+
+func (c *PGConn) Delete(ctx context.Context, sql string, args ...interface{}) (int64, error) {
+	return c.ExecRow(ctx, sql, args...)
 }
 
 func (c *PGConn) FindOne(ctx context.Context, sql string, result interface{}, args ...interface{}) error {
-	rows, err := c.conn.Query(ctx, sql, args...)
+	rows, err := c.Query(ctx, sql, args...)
 
 	if err != nil {
 		return err
@@ -122,7 +104,7 @@ func (c *PGConn) FindOne(ctx context.Context, sql string, result interface{}, ar
 }
 
 func (c *PGConn) FindAll(ctx context.Context, sql string, result interface{}, args ...interface{}) error {
-	rows, err := c.conn.Query(ctx, sql, args...)
+	rows, err := c.Query(ctx, sql, args...)
 
 	if err != nil {
 		return err
@@ -132,7 +114,7 @@ func (c *PGConn) FindAll(ctx context.Context, sql string, result interface{}, ar
 }
 
 func (c *PGConn) FindAllAsMap(ctx context.Context, sql string, args ...interface{}) ([]map[string]interface{}, error) {
-	rows, err := c.conn.Query(ctx, sql, args...)
+	rows, err := c.Query(ctx, sql, args...)
 
 	if err != nil {
 		return nil, err
@@ -142,7 +124,7 @@ func (c *PGConn) FindAllAsMap(ctx context.Context, sql string, args ...interface
 }
 
 func (c *PGConn) FindAllAsArray(ctx context.Context, sql string, args ...interface{}) ([][]interface{}, error) {
-	rows, err := c.conn.Query(ctx, sql, args...)
+	rows, err := c.Query(ctx, sql, args...)
 
 	if err != nil {
 		return nil, err
@@ -152,56 +134,65 @@ func (c *PGConn) FindAllAsArray(ctx context.Context, sql string, args ...interfa
 }
 
 type PGTx struct {
-	t pgx.Tx
+	pgxpool.Tx
 }
 
-func (tx *PGTx) Begin(ctx context.Context) (pgx.Tx, error) {
-	return tx.t.Begin(ctx)
+func (tx *PGTx) ExecRow(ctx context.Context, sql string, args ...interface{}) (int64, error) {
+	commandTag, err := tx.Exec(ctx, sql, args...)
+	if err != nil {
+		return 0, err
+	}
+	return commandTag.RowsAffected(), err
 }
 
-func (tx *PGTx) Commit(ctx context.Context) error {
-	return tx.t.Commit(ctx)
+func (tx *PGTx) Insert(ctx context.Context, sql string, args ...interface{}) (int64, error) {
+	return tx.ExecRow(ctx, sql, args...)
 }
 
-func (tx *PGTx) Rollback(ctx context.Context) error {
-	return tx.t.Rollback(ctx)
+func (tx *PGTx) Update(ctx context.Context, sql string, args ...interface{}) (int64, error) {
+	return tx.ExecRow(ctx, sql, args...)
 }
 
-func (tx *PGTx) CopyFrom(ctx context.Context, tableName pgx.Identifier, columnNames []string, rowSrc pgx.CopyFromSource) (int64, error) {
-	return tx.t.CopyFrom(ctx, tableName, columnNames, rowSrc)
+func (tx *PGTx) Delete(ctx context.Context, sql string, args ...interface{}) (int64, error) {
+	return tx.ExecRow(ctx, sql, args...)
 }
 
-func (tx *PGTx) SendBatch(ctx context.Context, b *pgx.Batch) pgx.BatchResults {
-	return tx.t.SendBatch(ctx, b)
+func (tx *PGTx) FindOne(ctx context.Context, sql string, result interface{}, args ...interface{}) error {
+	rows, err := tx.Query(ctx, sql, args...)
+
+	if err != nil {
+		return err
+	}
+
+	return StructScanOne(rows, result)
 }
 
-func (tx *PGTx) LargeObjects() pgx.LargeObjects {
-	return tx.t.LargeObjects()
+func (tx *PGTx) FindAll(ctx context.Context, sql string, result interface{}, args ...interface{}) error {
+	rows, err := tx.Query(ctx, sql, args...)
+
+	if err != nil {
+		return err
+	}
+
+	return StructScan(rows, result)
 }
 
-func (tx *PGTx) Prepare(ctx context.Context, name, sql string) (*pgconn.StatementDescription, error) {
-	return tx.t.Prepare(ctx, name, sql)
+func (tx *PGTx) FindAllAsMap(ctx context.Context, sql string, args ...interface{}) ([]map[string]interface{}, error) {
+	rows, err := tx.Query(ctx, sql, args...)
+
+	if err != nil {
+		return nil, err
+	}
+
+	return PGMapScan(rows)
 }
 
-func (tx *PGTx) Exec(ctx context.Context, sql string, arguments ...interface{}) (pgconn.CommandTag, error) {
-	return tx.t.Exec(ctx, sql, arguments...)
-}
+func (tx *PGTx) FindAllAsArray(ctx context.Context, sql string, args ...interface{}) ([][]interface{}, error) {
+	rows, err := tx.Query(ctx, sql, args...)
 
-func (tx *PGTx) Query(ctx context.Context, sql string, args ...interface{}) (pgx.Rows, error) {
-	return tx.t.Query(ctx, sql, args...)
-}
+	if err != nil {
+		return nil, err
+	}
 
-func (tx *PGTx) QueryRow(ctx context.Context, sql string, args ...interface{}) pgx.Row {
-	return tx.t.QueryRow(ctx, sql, args...)
+	return PGArrayScan(rows)
 }
-
-func (tx *PGTx) Conn() *pgx.Conn {
-	return tx.t.Conn()
-}
-
-//func (x *XConn) Hello( )  {
-//	x.(*pgxpool.Conn).Begin(context.Background())
-//}
-//func main() {
-//	pgx.Connect(context.Background(), os.Getenv("DATABASE_URL"))
-//}
