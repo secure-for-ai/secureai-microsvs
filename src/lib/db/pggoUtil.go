@@ -85,7 +85,7 @@ func StructScanOne(rows pgx.Rows, dest interface{}) error {
 	baseType := baseValue.Type()
 
 	fields := rows.FieldDescriptions()
-	baseFieldMap := getFieldMap(baseValue.Type(), fields)
+	baseFieldMap := getFieldMap(baseType, fields)
 	fieldsLen := len(fields)
 
 	vp := reflect.New(baseType)
