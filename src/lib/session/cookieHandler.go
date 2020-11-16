@@ -30,14 +30,15 @@ func NewAesGcmCookieHandler(encKey []byte /*, authKey []byte*/) (*AesGcmCookieHa
 		ahead: ahead,
 	}, nil
 }
-func (h AesGcmCookieHandler) Encode(sess *sessions.Session, store *HybridStore) (string, error) {
 
-	sessIDLen := len(sess.ID)
+func (h AesGcmCookieHandler) Encode(sess *sessions.Session, store *HybridStore) (string, error) {
+	sessIDEncoded := store.EncodeSessionId(sess)
+	sessIDLen := len(sessIDEncoded)
 	inputLen := sessIDLen + 8
 	input := make([]byte, inputLen)
 	// append current timestamp
 	timestamp := util.GetNowTimestamp()
-	copy(input, sess.ID)
+	copy(input, sessIDEncoded)
 	binary.LittleEndian.PutUint64(input[sessIDLen:], uint64(timestamp))
 
 	iv, err := util.GenerateRandomKey(12)
@@ -57,8 +58,6 @@ func (h AesGcmCookieHandler) Encode(sess *sessions.Session, store *HybridStore) 
 }
 
 func (h AesGcmCookieHandler) Decode(c *http.Cookie, sess *sessions.Session, store *HybridStore) error {
-	//return securecookie.DecodeMulti(c.Name, c.Value, &sess.ID, h.Codecs...)
-
 	ciperText, err := util.Base64Decode(c.Value)
 
 	if err != nil {
@@ -98,7 +97,5 @@ func (h AesGcmCookieHandler) Decode(c *http.Cookie, sess *sessions.Session, stor
 		return ErrInvalidCookie
 	}
 
-	sess.ID = string(plainText[:plainTextLen-8])
-
-	return nil
+	return store.DecodeSessionId(sess, plainText[:plainTextLen-8])
 }
