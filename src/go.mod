@@ -9,7 +9,6 @@ require (
 	github.com/gorilla/sessions v1.2.0
 	github.com/graphql-go/graphql v0.7.9
 	github.com/graphql-go/handler v0.2.3
-	github.com/jackc/pgconn v1.7.2
 	github.com/jackc/pgproto3/v2 v2.0.6
 	github.com/jackc/pgx/v4 v4.9.2
 	github.com/lib/pq v1.6.0 // indirect
