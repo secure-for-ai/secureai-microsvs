@@ -56,6 +56,7 @@ func testQuery() {
 	}
 	defer conn.Release()
 
+	//fmt.Sprintf("SELECT uid, username, password FROM test.%s", pq.QuoteIdentifier("testUser"))
 	resultArray, err := conn.FindAllAsArray(ctx, "SELECT uid, username, password FROM test.test_user")
 
 	if err != nil {

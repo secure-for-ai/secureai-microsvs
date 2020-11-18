@@ -57,12 +57,33 @@ var (
 		Prefix:        "session_",
 		IDGenerator:   session.SUIDInt64Generator{},
 		Table:         "test_session",
-		CacheAge:      300,
+		CacheAge:      10,
 	}
+
+	pgConf = db.PGPoolConf{
+		Host:   "localhost",
+		Port:   "7000",
+		DBName: "test",
+		User:   "test",
+		PW:     "password",
+	}
+
+	pgClient, _  = db.NewPGClient(pgConf)
+	redisPGStore = session.RedisPGStoreEngine{
+		RedisClient: sessRedisClient,
+		PGClient:    pgClient,
+		Serializer:  session.GobSerializer{},
+		Prefix:      "session_",
+		IDGenerator: session.SUIDInt64Generator{},
+		Table:       "test_session",
+		CacheAge:    10,
+	}
+
 	//key   = []byte("super-secret-key")
 	//store = sessions.NewCookieStore(key)
 	//store = session.NewSessionStore(&redisStore, &storeConf)
 	store = session.NewSessionStore(&redisMongoStore, &storeConf)
+	//store = session.NewSessionStore(&redisPGStore, &storeConf)
 )
 
 func secret(w http.ResponseWriter, r *http.Request) {

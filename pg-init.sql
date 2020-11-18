@@ -2,11 +2,11 @@
 
 CREATE SCHEMA test;
 
--- test.test_user definition
+-- test.testUser definition
 
 -- Drop table
 
--- DROP TABLE test.test_user;
+-- DROP TABLE test.testUser;
 
 CREATE TABLE test.test_user (
 	uid int8 NOT NULL,
@@ -16,6 +16,21 @@ CREATE TABLE test.test_user (
 );
 
 -- Insert test data
-INSERT INTO test.test_user (uid, username, "password") VALUES(0, 'user1', 'password');
-INSERT INTO test.test_user (uid, username, "password") VALUES(1, 'hello world', 'p@ssword');
-INSERT INTO test.test_user (uid, username, "password") VALUES(2, 'user2', 'test_pass');
+INSERT INTO test.testUser (uid, username, "password") VALUES(0, 'user1', 'password');
+INSERT INTO test.testUser (uid, username, "password") VALUES(1, 'hello world', 'p@ssword');
+INSERT INTO test.testUser (uid, username, "password") VALUES(2, 'user2', 'test_pass');
+
+create table "test_session"
+(
+	uid int,
+	sid int,
+	nonce bytea,
+	data jsonb,
+	ip inet,
+	"userAgent" varchar,
+	"createTime" int,
+	"updateTime" int,
+	"expireTime" int,
+	constraint testsession_pk
+		unique (uid, sid)
+);

@@ -4,6 +4,8 @@ import (
 	"context"
 	"fmt"
 	"github.com/jackc/pgx/v4"
+	"log"
+
 	//"github.com/jackc/pgx/v4/log/log15adapter"
 	"github.com/jackc/pgx/v4/pgxpool"
 )
@@ -39,6 +41,8 @@ func NewPGClient(conf PGPoolConf) (client *PGClient, err error) {
 	if err != nil {
 		return nil, err
 	}
+	log.Println("Connected to Postgres!")
+	log.Printf("Use Database: \"%s\"\n", conf.DBName)
 	return &PGClient{*_client}, err
 }
 
