@@ -4,10 +4,10 @@ import (
 	"fmt"
 	"github.com/graphql-go/graphql"
 	"log"
+	"template2/demo_mongo/constant"
+	"template2/demo_mongo/model"
 	"template2/lib/session"
 	"template2/lib/util"
-	"template2/test_app/constant"
-	"template2/test_app/model"
 )
 
 func getUser(p graphql.ResolveParams) (interface{}, error) {
@@ -137,7 +137,8 @@ func login(p graphql.ResolveParams) (interface{}, error) {
 		return false, err
 	}
 
-	_ = collection.UpdateValue("SID", "userInfo", user)
+	_ = collection.UpdateValue("SID", "uid", user.UID)
+	_ = collection.UpdateValue("SID", "data", map[string]interface{}{"userInfo": user})
 	//_ = collection.MaxAge("SID", 0)
 	err = collection.Save("SID")
 

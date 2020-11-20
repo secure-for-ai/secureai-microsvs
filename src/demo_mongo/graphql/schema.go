@@ -7,12 +7,12 @@ import (
 	"github.com/gorilla/sessions"
 	"github.com/graphql-go/graphql"
 	gh "github.com/graphql-go/handler"
-	"go.mongodb.org/mongo-driver/bson/primitive"
+	"log"
 	"net/http"
+	"template2/demo_mongo/config"
+	"template2/demo_mongo/model"
 	"template2/lib/session"
 	"template2/lib/util"
-	"template2/test_app/config"
-	"template2/test_app/model"
 )
 
 var (
@@ -99,6 +99,7 @@ type initializer interface {
 type prodInitializer struct{}
 
 func (prodInitializer) loadSession(w http.ResponseWriter, r *http.Request) *session.Collection {
+	log.Println("production")
 	sess, err := config.SessionStore.Get(r, "SID")
 
 	/*	if sess.ID == "" {
@@ -153,7 +154,7 @@ func (prodInitializer) loadSession(w http.ResponseWriter, r *http.Request) *sess
 	}
 
 	if sess.ID == "" {
-
+		sess.Values["data"] = map[string]interface{}{}
 	}
 
 	sessionMap := map[string]*sessions.Session{
@@ -168,16 +169,20 @@ func (prodInitializer) loadSession(w http.ResponseWriter, r *http.Request) *sess
 type devInitializer struct{}
 
 func (devInitializer) loadSession(w http.ResponseWriter, r *http.Request) *session.Collection {
+	log.Println("dev")
 	sess, _ := config.SessionStore.Get(r, "SID")
 
-	sess.ID, _ = config.SessionStore.IdGenerator().Generate(config.SessionStore.IdLength())
-	sess.Values["userInfo"] = model.UserInfo{
-		UID:        primitive.ObjectID{},
-		Username:   "testUsername",
-		Nickname:   "testNickname",
-		Email:      "test@test.com",
-		CreateTime: 1400000,
-		UpdateTime: 1400000,
+	//sess.ID, _ = config.SessionStore.Storage//IdGenerator().Generate(config.SessionStore.IdLength())
+	sess.Values["uid"] = int64(0)
+	sess.Values["data"] = map[string]interface{}{
+		"userInfo": model.UserInfo{
+			UID:        0,
+			Username:   "testUsername",
+			Nickname:   "testNickname",
+			Email:      "test@test.com",
+			CreateTime: 1400000,
+			UpdateTime: 1400000,
+		},
 	}
 
 	sessionMap := map[string]*sessions.Session{
@@ -226,7 +231,7 @@ func init() {
 			root["session"] = collection
 			s, _ := collection.Get("SID")
 
-			userInfo, ok := s.Values["userInfo"]
+			userInfo, ok := s.Values["data"].(map[string]interface{})["userInfo"]
 
 			if !ok {
 				return root

@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"log"
 	"net/http"
-	"template2/test_app/graphql"
+	"template2/demo_mongo/graphql"
 )
 
 func helloWorld(w http.ResponseWriter, r *http.Request) {

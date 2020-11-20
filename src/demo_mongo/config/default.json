@@ -33,6 +33,11 @@
       "pR6kDdHYqNMRO74kUxFiGgpv3A6qKFeCY6IDHxDH8NY"
     ]
   },
+  "Snowflake": {
+    "Epoch": 1288834974657,
+    "NodeBits": 10,
+    "StepBits": 12
+  },
   "AppInfo": {
     "Env": "dev"
   }

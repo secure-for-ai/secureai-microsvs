@@ -1,7 +1,7 @@
 version: '3'
 
 services:
-  api:
+  demo-api-mongo:
     #build: ./
     image: golang:1.14
     volumes:
@@ -16,8 +16,8 @@ services:
     environment:
       - GOPROXY=https://goproxy.cn
       - ENV=prod
-    container_name: gtemplate-dev-api
-    entrypoint: go run test_app/main.go
+    container_name: gtemplate-dev-demo-api-mongo
+    entrypoint: go run demo_mongo/main.go
   postgres:
     image: postgres:12
     ports:
@@ -64,5 +64,5 @@ services:
       - ./build:/usr/share/nginx/html
       - ./nginx.conf:/etc/nginx/conf.d/default.conf
     links:
-      - api:api
+      - demo-api-mongo:demo-api-mongo
     container_name: gtemplate-dev-nginx

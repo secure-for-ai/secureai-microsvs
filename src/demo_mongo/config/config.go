@@ -4,30 +4,31 @@ import (
 	"encoding/json"
 	"template2/lib/cache"
 	"template2/lib/session"
+	"template2/lib/snowflake"
 	"template2/lib/util"
 
-	//"fmt"
 	"io/ioutil"
 	"log"
 	"os"
 	"path"
-	//"template2/lib/cache"
 	"template2/lib/db"
 )
 
 type Config struct {
-	MongoDB db.MongoDBConf
-	Redis   cache.RedisConf
-	Session session.HybridStoreConf
-	AppInfo util.AppInfo
+	MongoDB   db.MongoDBConf
+	Redis     cache.RedisConf
+	Session   session.HybridStoreConf
+	Snowflake snowflake.NodeConf
+	AppInfo   util.AppInfo
 }
 
 var Conf *Config
 var MongoDBClient *db.MongoDBClient
 var RedisClient *cache.RedisClient
 var SessionStore *session.HybridStore
+var SnowflakeNode *snowflake.Node
 
-var confPathPrefix = defaultConfPath("test_app/config")
+var confPathPrefix = defaultConfPath("demo_mongo/config")
 
 func init() {
 	log.Println("Begin init")
@@ -38,6 +39,7 @@ func init() {
 	intiMongoDB()
 	initRedis()
 	initSession()
+	initSnowflake()
 
 	log.Println("Over init")
 	log.Println("Env: ", Conf.AppInfo.Env)
@@ -142,8 +144,26 @@ func initSession() {
 
 	storage := session.RedisStoreEngine{
 		RedisClient: RedisClient,
+		Serializer:  session.GobSerializer{},
+		Prefix:      "session_",
+		IDGenerator: session.SUIDInt64Generator{},
 	}
 	SessionStore = session.NewSessionStore(&storage, &Conf.Session)
 
 	log.Println("Over init session store")
+}
+
+func initSnowflake() {
+	log.Println("Begin init snowflake node")
+
+	var err error
+	// Todo Add service to get snowflake id
+	SnowflakeNode, err = snowflake.NewNode(0, &Conf.Snowflake)
+
+	if err != nil {
+		log.Println("unable to init snowflake node")
+		log.Panic(err)
+	}
+
+	log.Println("Over init snowflake node")
 }

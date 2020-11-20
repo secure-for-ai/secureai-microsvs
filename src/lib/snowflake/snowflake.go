@@ -34,9 +34,9 @@ var (
 )
 
 type NodeConf struct {
-	Epoch    int64 `default:"1288834974657"`
-	NodeBits uint8 `default:"10"`
-	StepBits uint8 `default:"12"`
+	Epoch    int64 `json:"Epoch"    default:"1288834974657"` //Todo use text string to convert
+	NodeBits uint8 `json:"NodeBits" default:"10"`
+	StepBits uint8 `json:"StepBits" default:"12"`
 
 	nodeMax   int64
 	nodeMask  int64
@@ -55,9 +55,9 @@ func (n NodeConf) init() {
 
 func NewNodeConf(Epoch int64, NodeBits uint8, StepBits uint8) NodeConf {
 	conf := NodeConf{
-		Epoch:    1288834974657,
-		NodeBits: 10,
-		StepBits: 12,
+		Epoch:    Epoch,    // 1288834974657,
+		NodeBits: NodeBits, // 10,
+		StepBits: StepBits, // 12,
 	}
 	conf.init()
 	return conf

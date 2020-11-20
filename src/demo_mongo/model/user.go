@@ -4,23 +4,22 @@ import (
 	"context"
 	"encoding/gob"
 	"go.mongodb.org/mongo-driver/bson"
-	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
+	"strconv"
+	"template2/demo_mongo/config"
+	"template2/demo_mongo/constant"
 	"template2/lib/db"
 	"template2/lib/util"
-	"template2/test_app/config"
-	"template2/test_app/constant"
 )
 
 type UserInfo struct {
-	UID primitive.ObjectID `bson:"_id,omitempty" json:"id,omitempty"`
-
-	Username   string `bson:"username" json:"username"`     // username
-	Nickname   string `bson:"nickname" json:"nickname"`     // nickname
-	Email      string `bson:"email" json:"email"`           // email
-	CreateTime int64  `bson:"createTime" json:"createTime"` // create time
-	UpdateTime int64  `bson:"updateTime" json:"updateTime"` // update time
+	UID        int64  `bson:"uid,omitempty" json:"uid,omitempty"`
+	Username   string `bson:"username" json:"username"`      // username
+	Nickname   string `bson:"nickname" json:"nickname"`      // nickname
+	Email      string `bson:"email" json:"email"`            // email
+	CreateTime int64  `bson:"create_time" json:"createTime"` // create time
+	UpdateTime int64  `bson:"update_time" json:"updateTime"` // update time
 }
 
 // Helpers --------------------------------------------------------------------
@@ -32,7 +31,7 @@ func init() {
 /* API used by Graph QL */
 func CreateUser(user *UserInfo) error {
 	userInfo := UserInfo{
-		UID:        primitive.NewObjectID(),
+		UID:        config.SnowflakeNode.Generate().Int64(), //primitive.NewObjectID(),
 		Nickname:   user.Nickname,
 		Username:   user.Username,
 		Email:      user.Email,
@@ -59,13 +58,14 @@ func GetUser(username string) (user *UserInfo, err error) {
 }
 
 func GetUserById(id string) (user *UserInfo, err error) {
-	var uid primitive.ObjectID
-	uid, ok := primitive.ObjectIDFromHex(id)
+	//var uid primitive.ObjectID
+	//uid, ok := primitive.ObjectIDFromHex(id)
+	uid, ok := strconv.ParseInt(id, 10, 64)
 	if ok != nil {
 		return user, constant.ErrParamIDFormatWrong
 	}
 	query := bson.M{
-		"_id": uid,
+		"uid": uid,
 	}
 	dbClient := config.MongoDBClient
 
@@ -80,7 +80,7 @@ func GetUserById(id string) (user *UserInfo, err error) {
 
 func UpdateUser(user *UserInfo) error {
 	query := bson.M{
-		"_id": user.UID,
+		"uid": user.UID,
 	}
 	update := bson.M{
 		"$set": user,
@@ -96,15 +96,15 @@ func UpdateUser(user *UserInfo) error {
 }
 
 func DeleteUser(id string) error {
-
-	var uid primitive.ObjectID
-	uid, ok := primitive.ObjectIDFromHex(id)
+	//var uid primitive.ObjectID
+	//uid, ok := primitive.ObjectIDFromHex(id)
+	uid, ok := strconv.ParseInt(id, 10, 64)
 	if ok != nil {
 		return constant.ErrParamIDFormatWrong
 	}
 
 	query := bson.M{
-		"_id": uid,
+		"uid": uid,
 	}
 	dbClient := config.MongoDBClient
 

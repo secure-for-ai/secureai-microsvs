@@ -37,6 +37,11 @@ func Base64Decode(s string) ([]byte, error) {
 
 func GetIP(req *http.Request) (ip net.IP) {
 	var rmtAddr string
+	/* Todo: handle real client IP if the service is behind load balancer such as nginx */
+	//log.Println("X-Real-IP", req.Header.Get("X-Real-IP"))
+	//log.Println("X-Forwarded-For", req.Header.Get("X-Forwarded-For"))
+	//log.Println("Host", req.Header.Get("Host"))
+	//log.Println("RemoteAddr", req.RemoteAddr)
 	fwdAddr := req.Header.Get("X-Forwarded-For") // capitalisation doesn't matter
 	if fwdAddr != "" {
 		// Got X-Forwarded-For

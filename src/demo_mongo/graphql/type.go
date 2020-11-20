@@ -3,8 +3,6 @@ package graphql
 import (
 	"github.com/graphql-go/graphql"
 	"template2/lib/graphql_ext"
-	"template2/test_app/constant"
-	"template2/test_app/model"
 )
 
 var idArgs = graphql.FieldConfigArgument{
@@ -57,15 +55,15 @@ var userType = graphql.NewObject(graphql.ObjectConfig{
 		"uid": &graphql.Field{
 			Type:        graphql.ID,
 			Description: "user id",
-			Resolve: func(p graphql.ResolveParams) (interface{}, error) {
-				if user, ok := p.Source.(*model.UserInfo); ok {
-					return user.UID.Hex(), nil
-				}
-				if user, ok := p.Source.(model.UserInfo); ok {
-					return user.UID.Hex(), nil
-				}
-				return nil, constant.ErrParamEmpty
-			},
+			//Resolve: func(p graphql.ResolveParams) (interface{}, error) {
+			//	if user, ok := p.Source.(*model.UserInfo); ok {
+			//		return user.UID, nil
+			//	}
+			//	if user, ok := p.Source.(model.UserInfo); ok {
+			//		return user.UID, nil
+			//	}
+			//	return nil, constant.ErrParamEmpty
+			//},
 		},
 		"username": &graphql.Field{
 			Type:        graphql.String,
