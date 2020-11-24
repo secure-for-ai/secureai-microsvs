@@ -1,6 +1,23 @@
 version: '3'
 
 services:
+  demo-api-pg:
+    #build: ./
+    image: golang:1.14
+    volumes:
+      - ./src:/go/src/
+    working_dir: /go/src/
+    ports:
+      - "6552:6552"
+    depends_on:
+      - redis
+      - mongo
+      - postgres
+    environment:
+      - GOPROXY=https://goproxy.cn
+      - ENV=prod
+    container_name: gtemplate-dev-demo-api-pg
+    entrypoint: go run demo_pg/main.go
   demo-api-mongo:
     #build: ./
     image: golang:1.14

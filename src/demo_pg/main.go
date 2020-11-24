@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"log"
 	"net/http"
-	"template2/demo_mongo/graphql"
+	"template2/demo_pg/graphql"
 )
 
 func helloWorld(w http.ResponseWriter, r *http.Request) {
@@ -13,7 +13,7 @@ func helloWorld(w http.ResponseWriter, r *http.Request) {
 
 func main() {
 	log.Println("Start service")
-	http.HandleFunc("/demo-mongo/hello", helloWorld)
-	http.HandleFunc("/demo-mongo/graphql", graphql.Graphql)
-	http.ListenAndServe(":6551", nil)
+	http.HandleFunc("/demo-pg/hello", helloWorld)
+	http.HandleFunc("/demo-pg/graphql", graphql.Graphql)
+	http.ListenAndServe(":6552", nil)
 }

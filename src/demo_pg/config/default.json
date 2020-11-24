@@ -6,9 +6,16 @@
     "User": "test",
     "PW": "password",
     "AdminDBName": "admin",
-    "Options" : {
+    "Options": {
       "retryWrites": false
     }
+  },
+  "Postgres": {
+    "Host": "postgres",
+    "Port": "5432",
+    "DBName": "test",
+    "User": "test",
+    "PW": "password"
   },
   "Redis": {
     "Addrs": [
@@ -17,17 +24,17 @@
     "PW": "password"
   },
   "Session": {
-    "IdLength":  32,
-    "KeyPrefix": "demo_mongo_sess_",
+    "IdLength": 32,
+    "KeyPrefix": "demo_pg_sess_",
     "Options": {
-      "Path":   "/",
+      "Path": "/",
       "Domain": "localhost",
       "MaxAge": 2592000,
       "Secure": false,
       "HttpOnly": true
     },
-    "IdGenerator":   "base64",
-    "Serializer":    "gob",
+    "IdGenerator": "base64",
+    "Serializer": "gob",
     "CookieHandler": "aes_gcm",
     "KeyPairs": [
       "pR6kDdHYqNMRO74kUxFiGgpv3A6qKFeCY6IDHxDH8NY"
@@ -39,6 +46,6 @@
     "StepBits": 12
   },
   "AppInfo": {
-    "Env": "dev"
+    "Env": "test"
   }
 }

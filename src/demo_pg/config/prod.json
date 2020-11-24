@@ -1,0 +1,13 @@
+{
+  "MongoDB": {
+    "Host": "mongo",
+    "Port": "27017",
+    "DBName": "gtest",
+    "User": "test",
+    "PW": "password",
+    "AdminDBName": "admin",
+    "Options" : {
+      "retryWrites": false
+    }
+  }
+}
