@@ -137,8 +137,31 @@ func (c *PGConn) FindAllAsArray(ctx context.Context, sql string, args ...interfa
 	return PGArrayScan(rows)
 }
 
+func (c *PGConn) Count(ctx context.Context, sql string, args ...interface{}) (int64, error) {
+	var count int64
+	rows, err := c.Query(ctx, sql, args...)
+
+	if err != nil {
+		return 0, err
+	}
+	defer rows.Close()
+
+	if rows.Next() {
+		err = rows.Scan(&count)
+		if err != nil {
+			return 0, err
+		}
+	}
+
+	return 0, nil
+}
+
 type PGTx struct {
 	pgxpool.Tx
+}
+
+func (tx *PGTx) RollBackDefer(ctx context.Context) {
+	_ = tx.Rollback(ctx)
 }
 
 func (tx *PGTx) ExecRow(ctx context.Context, sql string, args ...interface{}) (int64, error) {
@@ -199,4 +222,23 @@ func (tx *PGTx) FindAllAsArray(ctx context.Context, sql string, args ...interfac
 	}
 
 	return PGArrayScan(rows)
+}
+
+func (tx *PGTx) Count(ctx context.Context, sql string, args ...interface{}) (int64, error) {
+	var count int64
+	rows, err := tx.Query(ctx, sql, args...)
+
+	if err != nil {
+		return 0, err
+	}
+	defer rows.Close()
+
+	if rows.Next() {
+		err = rows.Scan(&count)
+		if err != nil {
+			return 0, err
+		}
+	}
+
+	return 0, nil
 }
