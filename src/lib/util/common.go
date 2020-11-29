@@ -69,5 +69,4 @@ func GetIP(req *http.Request) (ip net.IP) {
 func init() {
 	gob.Register(net.IP{})
 	gob.Register(map[string]interface{}{})
-	gob.Register(map[string]interface{}{})
 }

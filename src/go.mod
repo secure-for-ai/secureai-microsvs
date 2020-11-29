@@ -3,6 +3,7 @@ module template2
 go 1.14
 
 require (
+	github.com/dgrijalva/jwt-go v3.2.0+incompatible
 	github.com/go-redis/redis/v8 v8.3.4
 	github.com/gorilla/securecookie v1.1.1
 	github.com/gorilla/sessions v1.2.1

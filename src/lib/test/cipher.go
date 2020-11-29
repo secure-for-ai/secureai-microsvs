@@ -2,19 +2,19 @@ package main
 
 import (
 	"fmt"
-	"template2/lib/util"
+	"template2/lib/webCrypto"
 )
 
 var (
 	key       = "pR6kDdHYqNMRO74kUxFiGgpv3A6qKFeCY6IDHxDH8NY"
-	cipher, _ = util.NewAesGcmCipher(key)
-	plainText = "hello world"
+	cipher, _ = webCrypto.NewAesGcm(key)
+	plainText = []byte("hello world")
 )
 
 func main() {
-	fmt.Println("PlainText:", plainText)
-	cipherText, _ := cipher.Encrypt(plainText)
+	fmt.Println("PlainText:", string(plainText))
+	cipherText, _ := cipher.EncryptBase64(plainText)
 	fmt.Println("CipherText:", cipherText)
-	decryptText, _ := cipher.Decrypt(cipherText)
-	fmt.Println("DecryptText:", decryptText)
+	decryptText, _ := cipher.DecryptBase64(cipherText)
+	fmt.Println("DecryptText:", string(decryptText))
 }
