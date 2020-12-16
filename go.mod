@@ -1,4 +1,4 @@
-module template2
+module secureai-microsvs
 
 go 1.14
 
