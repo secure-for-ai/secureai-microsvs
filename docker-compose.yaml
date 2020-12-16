@@ -16,7 +16,7 @@ services:
     environment:
       - GOPROXY=https://goproxy.cn
       - ENV=prod
-    container_name: gtemplate-dev-demo-api-pg
+    container_name: secureai-dev-demo-api-pg
     entrypoint: go run demo_pg/main.go
   demo-api-mongo:
     #build: ./
@@ -33,7 +33,7 @@ services:
     environment:
       - GOPROXY=https://goproxy.cn
       - ENV=prod
-    container_name: gtemplate-dev-demo-api-mongo
+    container_name: secureai-dev-demo-api-mongo
     entrypoint: go run demo_mongo/main.go
   postgres:
     image: postgres:12
@@ -46,7 +46,7 @@ services:
       - POSTGRES_PASSWORD=password
       - POSTGRES_USER=test
       - POSTGRES_DB=test
-    container_name: gtemplate-dev-postgres
+    container_name: secureai-dev-postgres
   mongo:
     image: mongo:4.2.6
     ports:
@@ -59,7 +59,7 @@ services:
       - MONGO_INITDB_ROOT_USERNAME=test
       - MONGO_INITDB_ROOT_PASSWORD=password
       - MONGO_INITDB_DATABASE=gtest
-    container_name: gtemplate-dev-mongo
+    container_name: secureai-dev-mongo
     # RUN echo "rs.initiate();" > /docker-entrypoint-initdb.d/replica-init.js
     command: ["mongod", "--auth", "--bind_ip_all", "--replSet", "rs0" ]
   redis:
@@ -72,7 +72,7 @@ services:
       - ./data/redis:/data
       - ./redis.conf:/usr/local/etc/redis/redis.conf
     command: [ "redis-server", "/usr/local/etc/redis/redis.conf" ]
-    container_name: gtemplate-dev-redis
+    container_name: secureai-dev-redis
   nginx:
     image: nginx
     ports:
@@ -82,4 +82,4 @@ services:
       - ./nginx.conf:/etc/nginx/conf.d/default.conf
     links:
       - demo-api-mongo:demo-api-mongo
-    container_name: gtemplate-dev-nginx
+    container_name: secureai-dev-nginx
