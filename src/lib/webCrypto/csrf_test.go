@@ -13,8 +13,8 @@ import (
 func TestNewAesGcmCSRF(t *testing.T) {
 	key, _ := util.GenerateRandomKey(32)
 	csrf, err := webCrypto.NewAesGcmCSRF(key)
-	sessionInfoBin, _ := util.GenerateRandomKey(32)  // "sample_session"
-	sessionInfo := util.Base64Encode(sessionInfoBin) // "sample_session"
+	sessionInfoBin, _ := util.GenerateRandomKey(100)
+	sessionInfo := util.Base64Encode(sessionInfoBin)
 	expire := 60 * 15 * time.Second
 	assert.NoError(t, err)
 
@@ -46,8 +46,8 @@ func TestNewAesGcmCSRF(t *testing.T) {
 func TestNewHmacCSRF(t *testing.T) {
 	key, _ := util.GenerateRandomKey(32)
 	csrf, err := webCrypto.NewHmacCSRF(crypto.SHA256, key)
-	sessionInfoBin, _ := util.GenerateRandomKey(32)  // "sample_session"
-	sessionInfo := util.Base64Encode(sessionInfoBin) // "sample_session"
+	sessionInfoBin, _ := util.GenerateRandomKey(100)
+	sessionInfo := util.Base64Encode(sessionInfoBin)
 	expire := 60 * 15 * time.Second
 	assert.NoError(t, err)
 
@@ -79,8 +79,8 @@ func TestNewHmacCSRF(t *testing.T) {
 func BenchmarkNewAesGcmCSRF(b *testing.B) {
 	key, _ := util.GenerateRandomKey(32)
 	csrf, err := webCrypto.NewAesGcmCSRF(key)
-	sessionInfoBin, _ := util.GenerateRandomKey(32)  // "sample_session"
-	sessionInfo := util.Base64Encode(sessionInfoBin) // "sample_session"
+	sessionInfoBin, _ := util.GenerateRandomKey(100)
+	sessionInfo := util.Base64Encode(sessionInfoBin)
 	assert.NoError(b, err)
 
 	b.ReportAllocs()
@@ -99,7 +99,7 @@ func BenchmarkNewAesGcmCSRF(b *testing.B) {
 func BenchmarkNewHmacCSRF(b *testing.B) {
 	key, _ := util.GenerateRandomKey(32)
 	csrf, err := webCrypto.NewHmacCSRF(crypto.SHA256, key)
-	sessionInfoBin, _ := util.GenerateRandomKey(32)  // "sample_session"
+	sessionInfoBin, _ := util.GenerateRandomKey(100) // "sample_session"
 	sessionInfo := util.Base64Encode(sessionInfoBin) // "sample_session"
 	assert.NoError(b, err)
 
