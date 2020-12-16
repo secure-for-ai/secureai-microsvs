@@ -4,7 +4,7 @@ import (
 	"crypto/aes"
 	"crypto/cipher"
 	"errors"
-	"template2/lib/util"
+	"github.com/secure-for-ai/secureai-microsvs/util"
 )
 
 var ErrCipherText = errors.New("cipherText is invalid")

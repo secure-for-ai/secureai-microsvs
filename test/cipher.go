@@ -2,7 +2,7 @@ package main
 
 import (
 	"fmt"
-	"template2/lib/webCrypto"
+	"github.com/secure-for-ai/secureai-microsvs/webCrypto"
 )
 
 var (

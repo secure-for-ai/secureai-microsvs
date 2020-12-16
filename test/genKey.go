@@ -2,9 +2,9 @@ package main
 
 import (
 	"fmt"
+	"github.com/secure-for-ai/secureai-microsvs/util"
 	"os"
 	"strconv"
-	"template2/lib/util"
 )
 
 func main() {

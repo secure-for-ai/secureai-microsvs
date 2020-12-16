@@ -3,9 +3,9 @@ package main
 import (
 	"context"
 	"fmt"
+	"github.com/secure-for-ai/secureai-microsvs/cache"
+	"github.com/secure-for-ai/secureai-microsvs/util"
 	"os"
-	"template2/lib/cache"
-	"template2/lib/util"
 )
 
 var redisClient *cache.RedisClient

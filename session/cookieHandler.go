@@ -5,8 +5,8 @@ import (
 	"crypto/cipher"
 	"encoding/binary"
 	"github.com/gorilla/sessions"
+	"github.com/secure-for-ai/secureai-microsvs/util"
 	"net/http"
-	"template2/lib/util"
 )
 
 type AesGcmCookieHandler struct {

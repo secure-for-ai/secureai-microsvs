@@ -3,8 +3,8 @@ package main
 import (
 	"context"
 	"fmt"
+	"github.com/secure-for-ai/secureai-microsvs/db"
 	"os"
-	"template2/lib/db"
 )
 
 var client *db.PGClient

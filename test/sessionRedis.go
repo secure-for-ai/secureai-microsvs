@@ -3,10 +3,10 @@ package main
 import (
 	"fmt"
 	"github.com/gorilla/sessions"
+	"github.com/secure-for-ai/secureai-microsvs/cache"
+	"github.com/secure-for-ai/secureai-microsvs/db"
+	"github.com/secure-for-ai/secureai-microsvs/session"
 	"net/http"
-	"template2/lib/cache"
-	"template2/lib/db"
-	"template2/lib/session"
 )
 
 var (

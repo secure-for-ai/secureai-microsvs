@@ -2,10 +2,10 @@ package webCrypto_test
 
 import (
 	"crypto"
+	"github.com/secure-for-ai/secureai-microsvs/util"
+	"github.com/secure-for-ai/secureai-microsvs/webCrypto"
 	"github.com/stretchr/testify/assert"
 	"math/rand"
-	"template2/lib/util"
-	"template2/lib/webCrypto"
 	"testing"
 	"time"
 )

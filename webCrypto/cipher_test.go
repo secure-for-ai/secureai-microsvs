@@ -1,9 +1,9 @@
 package webCrypto_test
 
 import (
+	"github.com/secure-for-ai/secureai-microsvs/util"
+	"github.com/secure-for-ai/secureai-microsvs/webCrypto"
 	"github.com/stretchr/testify/assert"
-	"template2/lib/util"
-	"template2/lib/webCrypto"
 	"testing"
 )
 
