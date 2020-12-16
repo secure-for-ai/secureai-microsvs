@@ -1,4 +1,4 @@
-module secureai-microsvs
+module github.com/secure-for-ai/secureai-microsvs
 
 go 1.14
 
