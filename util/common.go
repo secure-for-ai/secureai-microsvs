@@ -6,6 +6,7 @@ import (
 	"encoding/gob"
 	"net"
 	"net/http"
+	"reflect"
 	"strings"
 	"time"
 )
@@ -64,6 +65,11 @@ func GetIP(req *http.Request) (ip net.IP) {
 	rmtAddr, _, _ = net.SplitHostPort(req.RemoteAddr)
 
 	return net.ParseIP(rmtAddr)
+}
+
+// get the concrete value of
+func ReflectValue(value interface{}) reflect.Value {
+	return reflect.Indirect(reflect.ValueOf(value))
 }
 
 func init() {
