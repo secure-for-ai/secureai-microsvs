@@ -50,13 +50,13 @@ func TestSQLStmt_Insert(t *testing.T) {
 
 	sql, args, err = db.SQL().Insert(&stuStruct).Gen()
 	evalSingle()
-	sql, args, err = db.SQL().Insert().IntoTable(&stuStruct).Values(&stuStruct).Gen()
+	sql, args, err = db.Insert().IntoTable(&stuStruct).Values(&stuStruct).Gen()
 	evalSingle()
-	sql, args, err = db.SQL().Insert().IntoTable("student").Values(stuVal).Gen()
+	sql, args, err = db.Insert().IntoTable("student").Values(stuVal).Gen()
 	evalSingle()
-	sql, args, err = db.SQL().Insert().IntoTable("student").ValuesBulk([]interface{}{stuVal}).Gen()
+	sql, args, err = db.Insert().IntoTable("student").ValuesBulk([]interface{}{stuVal}).Gen()
 	evalSingle()
-	sql, args, err = db.SQL().Insert().IntoTable("student").ValuesBulk([]interface{}{stuStruct}).Gen()
+	sql, args, err = db.Insert().IntoTable("student").ValuesBulk([]interface{}{stuStruct}).Gen()
 	evalSingle()
 
 	evalBulk := func() {
@@ -64,19 +64,19 @@ func TestSQLStmt_Insert(t *testing.T) {
 		assert.EqualValues(t, "INSERT INTO student (uid,username) VALUES (?,?)", sql)
 		assert.EqualValues(t, []interface{}{[]interface{}{100, "Alice"}, []interface{}{100, "Alice"}}, args)
 	}
-	sql, args, err = db.SQL().Insert(&stuStruct, &stuStruct).Gen()
+	sql, args, err = db.Insert(&stuStruct, &stuStruct).Gen()
 	evalBulk()
-	sql, args, err = db.SQL().InsertBulk(stuList).Gen()
+	sql, args, err = db.InsertBulk(stuList).Gen()
 	evalBulk()
-	sql, args, err = db.SQL().InsertBulk(&stuList).Gen()
+	sql, args, err = db.InsertBulk(&stuList).Gen()
 	evalBulk()
-	sql, args, err = db.SQL().InsertBulk([]interface{}{stuStruct, stuStruct}).Gen()
+	sql, args, err = db.InsertBulk([]interface{}{stuStruct, stuStruct}).Gen()
 	evalBulk()
-	sql, args, err = db.SQL().InsertBulk(&[]interface{}{stuStruct, stuStruct}).Gen()
+	sql, args, err = db.InsertBulk(&[]interface{}{stuStruct, stuStruct}).Gen()
 	evalBulk()
-	sql, args, err = db.SQL().InsertBulk([]interface{}{&stuStruct, &stuStruct}).Gen()
+	sql, args, err = db.InsertBulk([]interface{}{&stuStruct, &stuStruct}).Gen()
 	evalBulk()
-	sql, args, err = db.SQL().InsertBulk(&[]interface{}{&stuStruct, &stuStruct}).Gen()
+	sql, args, err = db.InsertBulk(&[]interface{}{&stuStruct, &stuStruct}).Gen()
 	evalBulk()
 }
 
@@ -264,6 +264,7 @@ func TestSQLStmt_Select(t *testing.T) {
 	evalAny()
 }
 
+// TestSQLStmt_OrderBy test sqlStmt.OrderBy, sqlStmt.Asc, and sqlStmt.Desc
 func TestSQLStmt_OrderBy(t *testing.T) {
 	var sql string
 	var args []interface{}
@@ -306,10 +307,12 @@ func TestSQLStmt_OrderBy(t *testing.T) {
 	evalDESC()
 }
 
+// TestSQLStmt_Limit test sqlStmt.Limit
 func TestSQLStmt_Limit(t *testing.T) {
 	var sql string
 	var args []interface{}
 	var err error
+
 	sql, args, err = db.Select().From(&stuStruct).Limit(10, 5).Gen()
 	assert.NoError(t, err)
 	assert.EqualValues(t, "SELECT * FROM student LIMIT 10 OFFSET 5", sql)
@@ -329,4 +332,46 @@ func TestSQLStmt_Limit(t *testing.T) {
 	assert.EqualError(t, err, db.ErrInvalidLimitation.Error())
 	_, _, err = db.Select().From(&stuStruct).Limit(10, -1).Gen()
 	assert.EqualError(t, err, db.ErrInvalidLimitation.Error())
+}
+
+// TestSQLStmt_GroupBy_Having test sqlStmt.GroupBy and sqlStmt.Havng
+func TestSQLStmt_GroupBy_Having(t *testing.T) {
+	var sql string
+	var args []interface{}
+	var err error
+
+	var uidGe100 = db.Expr("COUNT(uid)>?", 100)
+	//var usernameEqAlice = db.Expr("username=?", "Alice")
+
+	eval := func() {
+		assert.NoError(t, err)
+		assert.EqualValues(t, "SELECT uid,username FROM student GROUP BY username HAVING COUNT(uid)>?", sql)
+		assert.EqualValues(t, []interface{}{100}, args)
+	}
+	sql, args, err = db.SQL().Select(&stuStruct).GroupBy("username").Having(uidGe100).Gen()
+	eval()
+
+	evalAnd := func() {
+		assert.NoError(t, err)
+		assert.EqualValues(t, "SELECT uid,username FROM student GROUP BY username HAVING (COUNT(uid)>?) AND (COUNT(uid)>?)", sql)
+		assert.EqualValues(t, []interface{}{100, 100}, args)
+	}
+
+	sql, args, err = db.SQL().Select(&stuStruct).GroupBy("username").Having(uidGe100, uidGe100).Gen()
+	evalAnd()
+	sql, args, err = db.SQL().Select(&stuStruct).GroupBy("username").Having(uidGe100).HavingAnd(uidGe100).Gen()
+	evalAnd()
+	sql, args, err = db.SQL().Select(&stuStruct).GroupBy("username").HavingAnd(uidGe100, uidGe100).Gen()
+	evalAnd()
+
+	evalOr := func() {
+		assert.NoError(t, err)
+		assert.EqualValues(t, "SELECT uid,username FROM student GROUP BY username HAVING (COUNT(uid)>?) OR (COUNT(uid)>?)", sql)
+		assert.EqualValues(t, []interface{}{100, 100}, args)
+	}
+
+	sql, args, err = db.SQL().Select(&stuStruct).GroupBy("username").Having(uidGe100).HavingOr(uidGe100).Gen()
+	evalOr()
+	sql, args, err = db.SQL().Select(&stuStruct).GroupBy("username").HavingOr(uidGe100, uidGe100).Gen()
+	evalOr()
 }
