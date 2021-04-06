@@ -256,8 +256,11 @@ func (stmt *SQLStmt) selectWriteTo(w Writer) error {
 		}
 	}
 
-	if len(stmt.HavingStr) > 0 {
-		if _, err := fmt.Fprint(w, " HAVING ", stmt.HavingStr); err != nil {
+	if stmt.having.IsValid() {
+		if _, err := fmt.Fprint(w, " HAVING "); err != nil {
+			return err
+		}
+		if err := stmt.having.WriteTo(w); err != nil {
 			return err
 		}
 	}

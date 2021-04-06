@@ -106,7 +106,7 @@ type SQLStmt struct {
 	cond Cond
 
 	GroupByStr string
-	HavingStr  string
+	having     Cond
 	OrderByStr string
 
 	Offset int
@@ -126,6 +126,10 @@ type SQLStmt struct {
 
 func Insert(data ...interface{}) *SQLStmt {
 	return SQL().Insert(data...)
+}
+
+func InsertBulk(data interface{}) *SQLStmt {
+	return SQL().InsertBulk(data)
 }
 
 func Delete(data ...interface{}) *SQLStmt {
@@ -155,7 +159,7 @@ func (stmt *SQLStmt) Init() {
 	stmt.cond = condEmpty{}
 
 	stmt.GroupByStr = ""
-	stmt.HavingStr = ""
+	stmt.having = condEmpty{}
 	stmt.OrderByStr = ""
 
 	stmt.Offset = 0
@@ -654,89 +658,88 @@ func (stmt *SQLStmt) Set(data interface{}, args ...interface{}) *SQLStmt {
 }
 
 func (stmt *SQLStmt) Where(query interface{}, args ...interface{}) *SQLStmt {
-	stmt.And(query, args...)
+	return stmt.catCond(&stmt.cond, And, query, args...)
+}
+
+// concat an existing Cond and a new Cond statement with Op
+func (stmt *SQLStmt) catCond(c *Cond, OpFunc func(cond ...Cond) Cond, query interface{}, args ...interface{}) *SQLStmt {
+	switch query.(type) {
+	case string:
+		cond := Expr(query.(string), args...)
+		*c = OpFunc(*c, cond)
+	case Map:
+		queryMap := query.(Map)
+		conds := make([]Cond, 0, len(queryMap)+1)
+		conds = append(conds, *c)
+		for _, k := range queryMap.sortedKeys() {
+			conds = append(conds, Expr(k+"=?", queryMap[k]))
+		}
+		*c = OpFunc(conds...)
+	case Cond:
+		conds := make([]Cond, 0, len(args)+2)
+		conds = append(conds, *c)
+		conds = append(conds, query.(Cond))
+		for _, v := range args {
+			if vv, ok := v.(Cond); ok {
+				conds = append(conds, vv)
+			}
+		}
+		*c = OpFunc(conds...)
+	default:
+		// TODO: not support condition type
+	}
 	return stmt
 }
 
 // And add Where & and statement
 func (stmt *SQLStmt) And(query interface{}, args ...interface{}) *SQLStmt {
-	switch query.(type) {
-	case string:
-		cond := Expr(query.(string), args...)
-		stmt.cond = And(stmt.cond, cond)
-	case Map:
-		queryMap := query.(Map)
-		conds := make([]Cond, 0, len(queryMap)+1)
-		conds = append(conds, stmt.cond)
-		for _, k := range queryMap.sortedKeys() {
-			conds = append(conds, Expr(k+"=?", queryMap[k]))
-		}
-		stmt.cond = And(conds...)
-	case Cond:
-		conds := make([]Cond, 0, len(args)+2)
-		conds = append(conds, stmt.cond)
-		conds = append(conds, query.(Cond))
-		for _, v := range args {
-			if vv, ok := v.(Cond); ok {
-				conds = append(conds, vv)
-			}
-		}
-		stmt.cond = And(conds...)
-	default:
-		// TODO: not support condition type
-		//default:
-		//	stmt.LastError = ErrConditionType
-	}
-
-	return stmt
+	return stmt.catCond(&stmt.cond, And, query, args...)
 }
 
 // Or add Where & Or statement
 func (stmt *SQLStmt) Or(query interface{}, args ...interface{}) *SQLStmt {
-	switch query.(type) {
-	case string:
-		cond := Expr(query.(string), args...)
-		stmt.cond = Or(stmt.cond, cond)
-	case Map:
-		queryMap := query.(Map)
-		conds := make([]Cond, 0, len(queryMap)+1)
-		conds = append(conds, stmt.cond)
-		for _, k := range queryMap.sortedKeys() {
-			conds = append(conds, Expr(k+"=?", queryMap[k]))
-		}
-		stmt.cond = Or(conds...)
-	case Cond:
-		conds := make([]Cond, 0, len(args)+2)
-		conds = append(conds, stmt.cond)
-		conds = append(conds, query.(Cond))
-		for _, v := range args {
-			if vv, ok := v.(Cond); ok {
-				conds = append(conds, vv)
-			}
-		}
-		stmt.cond = Or(conds...)
-	default:
-		// TODO: not support condition type
-	}
-	return stmt
+	return stmt.catCond(&stmt.cond, Or, query, args...)
 }
+
+//// In generate "Where column IN (?) " statement
+//func (stmt *SQLStmt) In(column string, args ...interface{}) *SQLStmt {
+//	in := builder.In(stmt.quote(column), args...)
+//	stmt.cond = stmt.cond.And(in)
+//	return stmt
+//}
+//
+//// NotIn generate "Where column NOT IN (?) " statement
+//func (stmt *SQLStmt) NotIn(column string, args ...interface{}) *SQLStmt {
+//	notIn := builder.NotIn(stmt.quote(column), args...)
+//	stmt.cond = stmt.cond.And(notIn)
+//	return stmt
+//}
 
 // GroupBy generate "Group By keys" statement
 func (stmt *SQLStmt) GroupBy(keys ...string) *SQLStmt {
 	if len(keys) == 0 {
 		return stmt
 	}
-	if len(stmt.OrderByStr) > 0 {
-		stmt.OrderByStr += ", "
+	if len(stmt.GroupByStr) > 0 {
+		stmt.GroupByStr += ", "
 	}
 	stmt.GroupByStr = strings.Join(keys, ", ")
 	return stmt
 }
 
-// GroupBy generate "Group By keys" statement
-func (stmt *SQLStmt) Having(conditions string) *SQLStmt {
-	stmt.HavingStr = conditions
-	return stmt
+// GroupBy generate "Having conditions" statement
+func (stmt *SQLStmt) Having(query interface{}, args ...interface{}) *SQLStmt {
+	return stmt.catCond(&stmt.having, And, query, args...)
+}
+
+// GroupBy generate "Having conditions" statement && conditions
+func (stmt *SQLStmt) HavingAnd(query interface{}, args ...interface{}) *SQLStmt {
+	return stmt.catCond(&stmt.having, And, query, args...)
+}
+
+// GroupBy generate "Having conditions" statement || conditions
+func (stmt *SQLStmt) HavingOr(query interface{}, args ...interface{}) *SQLStmt {
+	return stmt.catCond(&stmt.having, Or, query, args...)
 }
 
 // OrderBy generate "Order By order" statement
