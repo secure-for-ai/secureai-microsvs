@@ -71,7 +71,7 @@ func (and condAnd) WriteTo(w Writer) error {
 }
 
 func (and condAnd) And(conds ...Cond) Cond {
-	return And(append([]Cond{and}, conds...)...)
+	return And(append(and, conds...)...)
 }
 
 func (and condAnd) Or(conds ...Cond) Cond {

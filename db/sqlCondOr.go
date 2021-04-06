@@ -76,7 +76,7 @@ func (or condOr) And(conds ...Cond) Cond {
 }
 
 func (or condOr) Or(conds ...Cond) Cond {
-	return Or(append([]Cond{or}, conds...)...)
+	return Or(append(or, conds...)...)
 }
 
 func (or condOr) IsValid() bool {
