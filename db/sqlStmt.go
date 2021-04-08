@@ -341,7 +341,6 @@ func (stmt *SQLStmt) valuesBulkInternal(data *reflect.Value) *SQLStmt {
 		}
 		stmt.InsertCols = InsertCols
 	default:
-		fmt.Print(data0)
 		InsertCols := buildColumns(data0)
 		if InsertCols != nil {
 			stmt.InsertCols = append(stmt.InsertCols, InsertCols...)
@@ -452,13 +451,17 @@ func (stmt *SQLStmt) Insert(data ...interface{}) *SQLStmt {
 		stmt.Values(data...)
 		stmt.IntoTable(data[0])
 	}
-	stmt.sqlType = SQLInsert
+	if stmt.sqlType == SQLNull {
+		stmt.sqlType = SQLInsert
+	}
 	return stmt
 }
 
 // Insert SQL
 func (stmt *SQLStmt) InsertBulk(data interface{}) *SQLStmt {
-	stmt.sqlType = SQLInsert
+	if stmt.sqlType == SQLNull {
+		stmt.sqlType = SQLInsert
+	}
 
 	dataR := util.ReflectValue(data)
 	dataType := dataR.Kind()
@@ -501,7 +504,9 @@ func (stmt *SQLStmt) Delete(data ...interface{}) *SQLStmt {
 	if l >= 2 {
 		stmt.And(data[1], data[2:]...)
 	}
-	stmt.sqlType = SQLDelete
+	if stmt.sqlType == SQLNull {
+		stmt.sqlType = SQLDelete
+	}
 	return stmt
 }
 
@@ -515,7 +520,9 @@ func (stmt *SQLStmt) Update(data ...interface{}) *SQLStmt {
 	if l >= 2 {
 		stmt.And(data[1], data[2:]...)
 	}
-	stmt.sqlType = SQLUpdate
+	if stmt.sqlType == SQLNull {
+		stmt.sqlType = SQLUpdate
+	}
 	return stmt
 }
 
@@ -531,7 +538,9 @@ func (stmt *SQLStmt) Select(data ...interface{}) *SQLStmt {
 	if l >= 2 {
 		stmt.And(data[1], data[2:]...)
 	}
-	stmt.sqlType = SQLSelect
+	if stmt.sqlType == SQLNull {
+		stmt.sqlType = SQLSelect
+	}
 	return stmt
 }
 
@@ -672,7 +681,7 @@ func (stmt *SQLStmt) catCond(c *Cond, OpFunc func(cond ...Cond) Cond, query inte
 		conds := make([]Cond, 0, len(queryMap)+1)
 		conds = append(conds, *c)
 		for _, k := range queryMap.sortedKeys() {
-			conds = append(conds, Expr(k+"=?", queryMap[k]))
+			conds = append(conds, Expr(k+" = ?", queryMap[k]))
 		}
 		*c = OpFunc(conds...)
 	case Cond:

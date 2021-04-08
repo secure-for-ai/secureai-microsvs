@@ -43,7 +43,7 @@ func (exprs *colParams) writeNameArgs(w Writer) error {
 		if _, err := fmt.Fprint(w, colName); err != nil {
 			return err
 		}
-		if _, err := fmt.Fprint(w, "="); err != nil {
+		if _, err := fmt.Fprint(w, " = "); err != nil {
 			return err
 		}
 

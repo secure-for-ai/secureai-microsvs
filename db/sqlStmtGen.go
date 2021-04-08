@@ -60,7 +60,6 @@ func (stmt *SQLStmt) insertWriteTo(w Writer) error {
 	if len(stmt.tableInto) <= 0 {
 		return ErrNoTableName
 	}
-	fmt.Print(stmt.InsertCols)
 	if len(stmt.InsertCols) <= 0 && len(stmt.tableFrom) == 0 {
 		return ErrNoColumnToInsert
 	}
