@@ -8,14 +8,20 @@ import (
 	"strings"
 )
 
+type SQLType int
+type SQLSchema int
+
 const (
-	SQLNull   = -1
-	SQLInsert = 0
-	SQLDelete = 1
-	SQLUpdate = 2
-	SQLSelect = 3
-	SQLUpsert = 4
-	SQLTag    = "db"
+	SQLNull SQLType = iota
+	SQLInsert
+	SQLDelete
+	SQLUpdate
+	SQLSelect
+	SQLUpsert
+	SQLTag                = "db"
+	SQLPara               = "??"
+	SQLPOSTGRES SQLSchema = iota
+	SQLMYSQL
 )
 
 type Columns []string
@@ -114,13 +120,13 @@ type SQLStmt struct {
 
 	InsertCols   []string
 	InsertValues [][]interface{}
-	isInsertBulk bool
+	//isInsertBulk bool
 
 	SetCols colParams
 
 	SelectCols []string
 
-	sqlType      int
+	sqlType      SQLType
 	insertSelect *SQLStmt
 }
 
@@ -167,7 +173,7 @@ func (stmt *SQLStmt) Init() {
 
 	stmt.InsertCols = []string{}
 	stmt.InsertValues = [][]interface{}{}
-	stmt.isInsertBulk = false
+	//stmt.isInsertBulk = false
 
 	stmt.SetCols = colParams{}
 
@@ -218,7 +224,7 @@ func buildValues(curData interface{}) []interface{} {
 			var val interface{}
 			fieldValue := v.Field(i)
 			val = fieldValue.Interface()
-			values[i] = Expr("?", val)
+			values[i] = Expr(SQLPara, val)
 		}
 		return values
 	}
@@ -260,9 +266,9 @@ func (stmt *SQLStmt) Values(data ...interface{}) *SQLStmt {
 	case 0:
 		return stmt
 	case 1:
-		if len(stmt.InsertValues) >= 1 {
-			stmt.isInsertBulk = true
-		}
+		//if len(stmt.InsertValues) >= 1 {
+		//	stmt.isInsertBulk = true
+		//}
 		curData := data[0]
 		switch curData.(type) {
 		case []interface{}:
@@ -272,7 +278,7 @@ func (stmt *SQLStmt) Values(data ...interface{}) *SQLStmt {
 				if e, ok := el.(expr); ok {
 					values = append(values, e)
 				} else {
-					values = append(values, Expr("?", e))
+					values = append(values, Expr(SQLPara, e))
 				}
 			}
 			stmt.InsertValues = append(stmt.InsertValues, values)
@@ -286,7 +292,7 @@ func (stmt *SQLStmt) Values(data ...interface{}) *SQLStmt {
 				if e, ok := val.(expr); ok {
 					InsertValues = append(InsertValues, e)
 				} else {
-					InsertValues = append(InsertValues, Expr("?", val))
+					InsertValues = append(InsertValues, Expr(SQLPara, val))
 				}
 			}
 			stmt.InsertCols = InsertCols
@@ -326,9 +332,9 @@ func (stmt *SQLStmt) valuesBulkInternal(data *reflect.Value) *SQLStmt {
 		return stmt
 	}
 
-	if dataLen > 1 || len(stmt.InsertValues) >= 1 {
-		stmt.isInsertBulk = true
-	}
+	//if dataLen > 1 || len(stmt.InsertValues) >= 1 {
+	//	stmt.isInsertBulk = true
+	//}
 
 	// update the insert columns
 	data0 := data.Index(0).Interface()
@@ -359,7 +365,7 @@ func (stmt *SQLStmt) valuesBulkInternal(data *reflect.Value) *SQLStmt {
 				if e, ok := el.(expr); ok {
 					values = append(values, e)
 				} else {
-					values = append(values, Expr("?", e))
+					values = append(values, Expr(SQLPara, e))
 				}
 			}
 			InsertValues = append(InsertValues, values)
@@ -371,7 +377,7 @@ func (stmt *SQLStmt) valuesBulkInternal(data *reflect.Value) *SQLStmt {
 				if e, ok := val.(expr); ok {
 					values = append(values, e)
 				} else {
-					values = append(values, Expr("?", val))
+					values = append(values, Expr(SQLPara, val))
 				}
 			}
 			InsertValues = append(InsertValues, values)
@@ -550,7 +556,7 @@ func (stmt *SQLStmt) Incr(col string, arg ...interface{}) *SQLStmt {
 	if len(arg) > 0 {
 		para = arg[0]
 	}
-	stmt.SetCols.addParam(col, Expr(col+" + ?", para))
+	stmt.SetCols.addParam(col, Expr(col+" + "+SQLPara, para))
 	return stmt
 }
 
@@ -560,7 +566,7 @@ func (stmt *SQLStmt) Decr(col string, arg ...interface{}) *SQLStmt {
 	if len(arg) > 0 {
 		para = arg[0]
 	}
-	stmt.SetCols.addParam(col, Expr(col+" - ?", para))
+	stmt.SetCols.addParam(col, Expr(col+" - "+SQLPara, para))
 	return stmt
 }
 
@@ -571,12 +577,12 @@ func (stmt *SQLStmt) Decr(col string, arg ...interface{}) *SQLStmt {
 func (stmt *SQLStmt) setExpr(col string, expr interface{}, args ...interface{}) *SQLStmt {
 	if e, ok := expr.(string); ok {
 		if len(args) > 0 {
-			// set("col", "col||?", "test") => writeTo: col = col||?, args: "test"
+			// set("col", "col||??", "test") => writeTo: col = col||??, args: "test"
 			stmt.SetCols.addParam(col, Expr(e, args...))
 		} else {
-			// set("col", "test") => writeTo: col = ?, args: "test"
-			// equivalent to set("col", "?", "test")
-			stmt.SetCols.addParam(col, Expr("?", e))
+			// set("col", "test") => writeTo: col = ??, args: "test"
+			// equivalent to set("col", SQLPara, "test")
+			stmt.SetCols.addParam(col, Expr(SQLPara, e))
 		}
 	} else {
 		stmt.SetCols.addParam(col, expr)
@@ -586,7 +592,7 @@ func (stmt *SQLStmt) setExpr(col string, expr interface{}, args ...interface{}) 
 
 // setMap Generate  "Update ... Set col1 = {expr1}, col1 = {expr2}" statement
 // {"username": "bob", "age": 10, "createTime": Expr("Now()"} =>
-// SQL: username = ? , age = ?, createTime = NOW()
+// SQL: username = ?? , age = ??, createTime = NOW()
 // Args: ["bob", 10]
 // Todo support expr as SQLStmt
 func (stmt *SQLStmt) setMap(exprs Map) *SQLStmt {
@@ -596,7 +602,7 @@ func (stmt *SQLStmt) setMap(exprs Map) *SQLStmt {
 		if e, ok := val.(expr); ok {
 			stmt.SetCols.addParam(col, e)
 		} else {
-			stmt.SetCols.addParam(col, Expr("?", val))
+			stmt.SetCols.addParam(col, Expr(SQLPara, val))
 		}
 	}
 	return stmt
@@ -642,7 +648,7 @@ func (stmt *SQLStmt) setStruct(data interface{}) *SQLStmt {
 				val = fieldValue.Interface()
 			}*/
 
-			stmt.SetCols.addParam(colName, Expr("?", val))
+			stmt.SetCols.addParam(colName, Expr(SQLPara, val))
 		}
 	}
 	return stmt
@@ -681,7 +687,7 @@ func (stmt *SQLStmt) catCond(c *Cond, OpFunc func(cond ...Cond) Cond, query inte
 		conds := make([]Cond, 0, len(queryMap)+1)
 		conds = append(conds, *c)
 		for _, k := range queryMap.sortedKeys() {
-			conds = append(conds, Expr(k+" = ?", queryMap[k]))
+			conds = append(conds, Expr(k+" = "+SQLPara, queryMap[k]))
 		}
 		*c = OpFunc(conds...)
 	case Cond:
@@ -710,14 +716,14 @@ func (stmt *SQLStmt) Or(query interface{}, args ...interface{}) *SQLStmt {
 	return stmt.catCond(&stmt.cond, Or, query, args...)
 }
 
-//// In generate "Where column IN (?) " statement
+//// In generate "Where column IN (??) " statement
 //func (stmt *SQLStmt) In(column string, args ...interface{}) *SQLStmt {
 //	in := builder.In(stmt.quote(column), args...)
 //	stmt.cond = stmt.cond.And(in)
 //	return stmt
 //}
 //
-//// NotIn generate "Where column NOT IN (?) " statement
+//// NotIn generate "Where column NOT IN (??) " statement
 //func (stmt *SQLStmt) NotIn(column string, args ...interface{}) *SQLStmt {
 //	notIn := builder.NotIn(stmt.quote(column), args...)
 //	stmt.cond = stmt.cond.And(notIn)

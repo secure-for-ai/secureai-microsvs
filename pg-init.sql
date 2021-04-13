@@ -49,6 +49,22 @@ CREATE TABLE test.test_session
 
 ALTER TABLE test.test_session owner to test;
 
+CREATE TABLE test.student
+(
+    uid bigint not null
+        CONSTRAINT student_pk_uid
+            PRIMARY KEY,
+    username varchar(100)
+        CONSTRAINT student_pk_username
+            UNIQUE,
+    nickname varchar(100),
+    email varchar(100),
+    create_time bigint,
+    update_time bigint
+);
+
+ALTER TABLE test.student owner to test;
+
 -- DROP SCHEMA demo_pg;
 
 CREATE SCHEMA demo_pg;

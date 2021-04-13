@@ -7,7 +7,7 @@ import (
 	"reflect"
 )
 
-var ErrFindNil = PGError("pg: row not found")
+var ErrFindNil = errors.New("pg: row not found")
 
 func getFieldMap(t reflect.Type, rowFields []pgproto3.FieldDescription) []int {
 	tNumField := t.NumField()
@@ -50,10 +50,9 @@ func getFieldMap(t reflect.Type, rowFields []pgproto3.FieldDescription) []int {
 	// ]
 	// Then tRowFieldMap = []int{0, 1, 2}
 	tRowFieldMap := make([]int, len(rowFields))
-
 	for i := 0; i < tNumField; i++ {
 		_field := t.Field(i)
-		_tag := _field.Tag.Get("pg")
+		_tag := _field.Tag.Get(SQLTag)
 		if _tag != "" {
 			tFieldNameIndexMap[_tag] = i
 		} else {
@@ -74,28 +73,33 @@ func StructScanOne(rows pgx.Rows, dest interface{}) error {
 	value := reflect.ValueOf(dest)
 
 	if value.Kind() != reflect.Ptr {
-		return errors.New("must pass a pointer, not a value, to StructScan destination")
+		return errors.New("must pass a pointer, not a value, to StructScanSlice destination")
 	}
 	if value.IsNil() {
-		return errors.New("nil pointer passed to StructScan destination")
+		return errors.New("nil pointer passed to StructScanSlice destination")
 	}
 
 	// get real value
 	baseValue := reflect.Indirect(value)
 	baseType := baseValue.Type()
 
+	if baseValue.Kind() != reflect.Struct {
+		panic("reflect: Field of non-struct type " + baseValue.String())
+	}
+
 	fields := rows.FieldDescriptions()
 	baseFieldMap := getFieldMap(baseType, fields)
 	fieldsLen := len(fields)
 
-	vp := reflect.New(baseType)
-	v := reflect.Indirect(vp)
+	//vp := reflect.New(baseType)
+	//v := reflect.Indirect(vp)
 
 	if rows.Next() {
 		args := make([]interface{}, fieldsLen)
 
 		for i := range fields {
-			args[i] = v.Field(baseFieldMap[i]).Addr().Interface()
+			//args[i] = v.Field(baseFieldMap[i]).Addr().Interface()
+			args[i] = baseValue.Field(baseFieldMap[i]).Addr().Interface()
 		}
 		err := rows.Scan(args...)
 		if err != nil {
@@ -105,28 +109,32 @@ func StructScanOne(rows pgx.Rows, dest interface{}) error {
 		return ErrFindNil
 	}
 
-	baseValue.Set(v)
+	//baseValue.Set(v)
 
 	return nil
 }
 
-func StructScan(rows pgx.Rows, dest interface{}) error {
+// It is better to pre-allocate the memory for dest, which is a slice, if
+// you know the maximum number of return records,
+// so that it won't reallocate the memory of the slice.
+func StructScanSlice(rows pgx.Rows, dest interface{}) error {
 	var v, vp reflect.Value
 	defer rows.Close()
 
 	value := reflect.ValueOf(dest)
 
 	if value.Kind() != reflect.Ptr {
-		return errors.New("must pass a pointer, not a value, to StructScan destination")
+		return errors.New("must pass a pointer, not a value, to StructScanSlice destination")
 	}
 	if value.IsNil() {
-		return errors.New("nil pointer passed to StructScan destination")
+		return errors.New("nil pointer passed to StructScanSlice destination")
 	}
 
 	direct := reflect.Indirect(value)
 
 	slice := direct.Type()
-	if slice.Kind() != reflect.Slice {
+	sliceType := slice.Kind()
+	if sliceType != reflect.Slice {
 		return errors.New("must pass a pointer to a slice")
 	}
 
@@ -139,29 +147,32 @@ func StructScan(rows pgx.Rows, dest interface{}) error {
 	baseFieldMap := getFieldMap(base, fields)
 	fieldsLen := len(fields)
 
-	for rows.Next() {
-		// allocate new value
-		vp = reflect.New(base)
-		v = reflect.Indirect(vp)
-		args := make([]interface{}, fieldsLen)
+	tmpDirect := direct
+	// allocate new value
+	vp = reflect.New(base)
+	v = reflect.Indirect(vp)
+	args := make([]interface{}, fieldsLen)
 
-		for i := range fields {
-			args[i] = v.Field(baseFieldMap[i]).Addr().Interface()
-		}
+	for i := range fields {
+		args[i] = v.Field(baseFieldMap[i]).Addr().Interface()
+	}
+	for rows.Next() {
+
 		err := rows.Scan(args...)
 		if err != nil {
 			return err
 		}
 
-		direct.Set(reflect.Append(direct, v))
+		//direct.Set(reflect.Append(direct, v))
+		tmpDirect = reflect.Append(tmpDirect, v)
 	}
 
+	direct.Set(tmpDirect)
 	return nil
 }
 
-func PGMapScan(rows pgx.Rows) ([]map[string]interface{}, error) {
+func PGMapScan(rows pgx.Rows, maps *[]map[string]interface{}) error {
 
-	var maps []map[string]interface{}
 	defer rows.Close()
 
 	var m map[string]interface{}
@@ -169,34 +180,34 @@ func PGMapScan(rows pgx.Rows) ([]map[string]interface{}, error) {
 
 		v, err := rows.Values()
 		if err != nil {
-			return nil, err
+			return err
 		}
 
 		fields := rows.FieldDescriptions()
 
-		m = make(map[string]interface{})
+		// specific the hint size of the map in order to avoid extra memory allocation
+		m = make(map[string]interface{}, len(fields))
 		for i := range fields {
 			m[string(fields[i].Name)] = v[i]
 		}
 
-		maps = append(maps, m)
+		*maps = append(*maps, m)
 	}
 
-	return maps, nil
+	return nil
 }
 
-func PGArrayScan(rows pgx.Rows) ([][]interface{}, error) {
-	var values [][]interface{}
+func PGArrayScan(rows pgx.Rows, arrays *[][]interface{}) error {
 	defer rows.Close()
 
 	for rows.Next() {
 		v, err := rows.Values()
 		if err != nil {
-			return nil, err
+			return err
 		}
 
-		values = append(values, v)
+		*arrays = append(*arrays, v)
 	}
 
-	return values, nil
+	return nil
 }

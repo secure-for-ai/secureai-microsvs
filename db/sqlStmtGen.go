@@ -6,7 +6,7 @@ import (
 	"strings"
 )
 
-func (stmt *SQLStmt) Gen() (string, []interface{}, error) {
+func (stmt *SQLStmt) Gen(schema ...SQLSchema) (string, []interface{}, error) {
 	var err error
 	w := NewWriter()
 
@@ -19,6 +19,52 @@ func (stmt *SQLStmt) Gen() (string, []interface{}, error) {
 		err = stmt.updateWriteTo(w)
 	case SQLSelect:
 		err = stmt.selectWriteTo(w)
+	}
+
+	sql := w.String()
+	var index, i int
+
+	index = strings.Index(sql, SQLPara)
+
+	// nothing need to be replaced
+	if index < 0 {
+		return sql, w.args, err
+	}
+
+	//reset memory of the writer
+	w.Reset()
+	w.Grow(len(sql))
+
+	start := 0
+	sepLen := len(SQLPara)
+
+	pgFunc := func() {
+		fmt.Fprintf(w, "%s$%d", sql[start:start+index], i+1)
+	}
+
+	myFunc := func() {
+		fmt.Fprintf(w, "%s?", sql[start:start+index])
+	}
+
+	var callback = myFunc
+
+	if len(schema) > 0 {
+		switch schema[0] {
+		case SQLPOSTGRES:
+			callback = pgFunc
+		case SQLMYSQL:
+			w.Grow(len(sql) - len(w.args))
+		}
+	}
+
+	for i = 0; ; i++ {
+		if index == -1 {
+			fmt.Fprintf(w, "%s", sql[start:])
+			break
+		}
+		callback()
+		start = start + index + sepLen
+		index = strings.Index(sql[start:], SQLPara)
 	}
 
 	return w.String(), w.args, err
@@ -108,7 +154,7 @@ func (stmt *SQLStmt) insertWriteTo(w Writer) error {
 					return err
 				}
 			} else {
-				if _, err := fmt.Fprint(valBuf, "?"); err != nil {
+				if _, err := fmt.Fprint(valBuf, SQLPara); err != nil {
 					return err
 				}
 				args = append(args, value)

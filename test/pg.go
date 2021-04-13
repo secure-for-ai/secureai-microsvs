@@ -30,9 +30,9 @@ func initPG() {
 }
 
 type User struct {
-	Uid      int64  `json:"uid" pg:"uid"`
-	Username string `json:"username" pg:"username"`
-	Password string `json:"password" pg:"password"`
+	Uid      int64  `json:"uid" db:"uid"`
+	Username string `json:"username" db:"username"`
+	Password string `json:"password" db:"password"`
 }
 
 func main() {
@@ -48,6 +48,7 @@ func testQuery() {
 	fmt.Println("======== Test Querys ========")
 	fmt.Println("=============================")
 
+	var affectedRows int64
 	ctx := context.Background()
 	conn, err := client.GetConn(ctx)
 
@@ -57,29 +58,34 @@ func testQuery() {
 	defer conn.Release()
 
 	//fmt.Sprintf("SELECT uid, username, password FROM test.%s", pq.QuoteIdentifier("testUser"))
-	resultArray, err := conn.FindAllAsArray(ctx, "SELECT uid, username, password FROM test.test_user")
+	var resultArray [][]interface{}
+	affectedRows, err = conn.FindAllAsArray(ctx, "SELECT uid, username, password FROM test.test_user", &resultArray)
 
 	if err != nil {
 		panic(err.Error())
 	}
 
+	fmt.Println("Array Find records:", affectedRows)
 	fmt.Println("Array Scan:", resultArray)
 
-	resultMap, err := conn.FindAllAsMap(ctx, "SELECT uid, username, password FROM test.test_user")
+	var resultMap []map[string]interface{}
+	affectedRows, err = conn.FindAllAsMap(ctx, "SELECT uid, username, password FROM test.test_user", &resultMap)
 
 	if err != nil {
 		panic(err.Error())
 	}
 
+	fmt.Println("Map Find records:", affectedRows)
 	fmt.Println("Map Scan:", resultMap)
 
 	var users []User
-	err = conn.FindAll(ctx, "SELECT uid, username, password FROM test.test_user", &users)
+	affectedRows, err = conn.FindAll(ctx, "SELECT uid, username, password FROM test.test_user", &users)
 
 	if err != nil {
 		panic(err.Error())
 	}
 
+	fmt.Println("FindAll records:", affectedRows)
 	fmt.Println("FindAll:", users)
 
 	var user User
@@ -126,7 +132,7 @@ func testQuery() {
 	fmt.Println("Delete affected: ", affectRows)
 
 	users = []User{}
-	err = conn.FindAll(ctx, "SELECT uid, username, password FROM test.test_user WHERE uid=$1", &users, 3)
+	affectedRows, err = conn.FindAll(ctx, "SELECT uid, username, password FROM test.test_user WHERE uid=$1", &users, 3)
 
 	if err != nil {
 		panic(err.Error())
@@ -160,29 +166,34 @@ func testTransaction() {
 		}
 	}()
 
-	resultArray, err := tx.FindAllAsArray(ctx, "SELECT uid, username, password FROM test.test_user")
+	var resultArray [][]interface{}
+	affectRows, err := tx.FindAllAsArray(ctx, "SELECT uid, username, password FROM test.test_user", &resultArray)
 
 	if err != nil {
 		panic(err.Error())
 	}
 
+	fmt.Println("Array Find records:", affectRows)
 	fmt.Println("Array Scan:", resultArray)
 
-	resultMap, err := tx.FindAllAsMap(ctx, "SELECT uid, username, password FROM test.test_user")
+	var resultMap []map[string]interface{}
+	affectRows, err = tx.FindAllAsMap(ctx, "SELECT uid, username, password FROM test.test_user", &resultMap)
 
 	if err != nil {
 		panic(err.Error())
 	}
 
+	fmt.Println("Map Find records:", affectRows)
 	fmt.Println("Map Scan:", resultMap)
 
 	var users []User
-	err = tx.FindAll(ctx, "SELECT uid, username, password FROM test.test_user", &users)
+	affectRows, err = tx.FindAll(ctx, "SELECT uid, username, password FROM test.test_user", &users)
 
 	if err != nil {
 		panic(err.Error())
 	}
 
+	fmt.Println("FindAll records:", affectRows)
 	fmt.Println("FindAll:", users)
 
 	var user User
@@ -194,7 +205,7 @@ func testTransaction() {
 
 	fmt.Println("FindOne:", user)
 
-	affectRows, err := tx.Insert(
+	affectRows, err = tx.Insert(
 		ctx, "INSERT INTO test.test_user (uid, username, password) VALUES ($1, $2, $3)",
 		3, "hello world", "p@ssword")
 
@@ -229,7 +240,7 @@ func testTransaction() {
 	fmt.Println("Delete affected: ", affectRows)
 
 	users = []User{}
-	err = tx.FindAll(ctx, "SELECT uid, username, password FROM test.test_user WHERE uid=$1", &users, 3)
+	affectRows, err = tx.FindAll(ctx, "SELECT uid, username, password FROM test.test_user WHERE uid=$1", &users, 3)
 
 	if err != nil {
 		panic(err.Error())
