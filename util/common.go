@@ -1,9 +1,11 @@
 package util
 
 import (
+	"crypto"
 	"crypto/rand"
 	"encoding/base64"
 	"encoding/gob"
+	"encoding/hex"
 	"net"
 	"net/http"
 	"reflect"
@@ -75,4 +77,18 @@ func ReflectValue(value interface{}) reflect.Value {
 func init() {
 	gob.Register(net.IP{})
 	gob.Register(map[string]interface{}{})
+}
+
+func HashString(str string, algo crypto.Hash) []byte {
+	h := algo.New()
+	h.Write([]byte(str))
+	return h.Sum(nil)
+}
+
+func HashStringToHex(str string, algo crypto.Hash) string {
+	return hex.EncodeToString(HashString(str, algo))
+}
+
+func HashStringToBase64(str string, algo crypto.Hash) string {
+	return base64.RawURLEncoding.EncodeToString(HashString(str, algo))
 }
