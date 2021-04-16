@@ -6,7 +6,6 @@ import (
 	"encoding/binary"
 	"errors"
 	"github.com/secure-for-ai/secureai-microsvs/util"
-	"log"
 	"strconv"
 	"strings"
 	"time"
@@ -59,7 +58,6 @@ func (c *aesGcmCSRF) ValidToken(session, token string) bool {
 	// check length
 	sessLen := len(session)
 	if len(plaintext) != sessLen+8 {
-		log.Println("==========", len(plaintext), sessLen+8)
 		return false
 	}
 

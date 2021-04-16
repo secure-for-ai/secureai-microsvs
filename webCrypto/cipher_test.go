@@ -41,17 +41,16 @@ func TestCipherByte(t *testing.T) {
 	assert.Equal(t, plainText, decryptText)
 }
 
-func BenchmarkCipherByte(b *testing.B) {
-	key, _ := util.GenerateRandomKey(32)
+func benchmarkCipherByte(b *testing.B, keyLen, n int) {
+	key, _ := util.GenerateRandomKey(keyLen)
 	cipher, err := webCrypto.NewAesGcm(util.Base64Encode(key))
 	assert.NoError(b, err)
 
-	plainText, _ := util.GenerateRandomKey(1024)
-
 	b.ReportAllocs()
 	b.ResetTimer()
-
+	b.SetBytes(int64(n))
 	b.RunParallel(func(pb *testing.PB) {
+		plainText, _ := util.GenerateRandomKey(n)
 		for pb.Next() {
 			cipherText, _ := cipher.EncryptByte(plainText)
 			decrypted, _ := cipher.DecryptByte(cipherText)
@@ -60,16 +59,37 @@ func BenchmarkCipherByte(b *testing.B) {
 	})
 }
 
-func BenchmarkCipherBase64(b *testing.B) {
-	key, _ := util.GenerateRandomKey(32)
+// AES 128 N Bytes
+func BenchmarkCipherByte128_16(b *testing.B)    { benchmarkCipherByte(b, 16, 16) }
+func BenchmarkCipherByte128_128(b *testing.B)   { benchmarkCipherByte(b, 16, 128) }
+func BenchmarkCipherByte128_1024(b *testing.B)  { benchmarkCipherByte(b, 16, 1024) }
+func BenchmarkCipherByte128_8192(b *testing.B)  { benchmarkCipherByte(b, 16, 8192) }
+func BenchmarkCipherByte128_65536(b *testing.B) { benchmarkCipherByte(b, 16, 65536) }
+
+// AES 192 N Bytes
+func BenchmarkCipherByte192_16(b *testing.B)    { benchmarkCipherByte(b, 24, 16) }
+func BenchmarkCipherByte192_128(b *testing.B)   { benchmarkCipherByte(b, 24, 128) }
+func BenchmarkCipherByte192_1024(b *testing.B)  { benchmarkCipherByte(b, 24, 1024) }
+func BenchmarkCipherByte192_8192(b *testing.B)  { benchmarkCipherByte(b, 24, 8192) }
+func BenchmarkCipherByte192_65536(b *testing.B) { benchmarkCipherByte(b, 24, 65536) }
+
+// AES 256 N Bytes
+func BenchmarkCipherByte256_16(b *testing.B)    { benchmarkCipherByte(b, 32, 16) }
+func BenchmarkCipherByte256_128(b *testing.B)   { benchmarkCipherByte(b, 32, 128) }
+func BenchmarkCipherByte256_1024(b *testing.B)  { benchmarkCipherByte(b, 32, 1024) }
+func BenchmarkCipherByte256_8192(b *testing.B)  { benchmarkCipherByte(b, 32, 8192) }
+func BenchmarkCipherByte256_65536(b *testing.B) { benchmarkCipherByte(b, 32, 65536) }
+
+func benchmarkCipherBase64(b *testing.B, keyLen, n int) {
+	key, _ := util.GenerateRandomKey(keyLen)
 	cipher, err := webCrypto.NewAesGcm(util.Base64Encode(key))
 	assert.NoError(b, err)
 
-	plainText, _ := util.GenerateRandomKey(1024)
-
 	b.ReportAllocs()
 	b.ResetTimer()
+	b.SetBytes(int64(n))
 	b.RunParallel(func(pb *testing.PB) {
+		plainText, _ := util.GenerateRandomKey(n)
 		for pb.Next() {
 			cipherText, _ := cipher.EncryptBase64(plainText)
 			decrypted, _ := cipher.DecryptBase64(cipherText)
@@ -77,3 +97,24 @@ func BenchmarkCipherBase64(b *testing.B) {
 		}
 	})
 }
+
+// AES 128 N Bytes
+func BenchmarkCipherBase64_128_16(b *testing.B)    { benchmarkCipherBase64(b, 16, 16) }
+func BenchmarkCipherBase64_128_128(b *testing.B)   { benchmarkCipherBase64(b, 16, 128) }
+func BenchmarkCipherBase64_128_1024(b *testing.B)  { benchmarkCipherBase64(b, 16, 1024) }
+func BenchmarkCipherBase64_128_8192(b *testing.B)  { benchmarkCipherBase64(b, 16, 8192) }
+func BenchmarkCipherBase64_128_65536(b *testing.B) { benchmarkCipherBase64(b, 16, 65536) }
+
+// AES 192 N Bytes
+func BenchmarkCipherBase64_192_16(b *testing.B)    { benchmarkCipherBase64(b, 24, 16) }
+func BenchmarkCipherBase64_192_128(b *testing.B)   { benchmarkCipherBase64(b, 24, 128) }
+func BenchmarkCipherBase64_192_1024(b *testing.B)  { benchmarkCipherBase64(b, 24, 1024) }
+func BenchmarkCipherBase64_192_8192(b *testing.B)  { benchmarkCipherBase64(b, 24, 8192) }
+func BenchmarkCipherBase64_192_65536(b *testing.B) { benchmarkCipherBase64(b, 24, 65536) }
+
+// AES 256 N Bytes
+func BenchmarkCipherBase64_256_16(b *testing.B)    { benchmarkCipherBase64(b, 32, 16) }
+func BenchmarkCipherBase64_256_128(b *testing.B)   { benchmarkCipherBase64(b, 32, 128) }
+func BenchmarkCipherBase64_256_1024(b *testing.B)  { benchmarkCipherBase64(b, 32, 1024) }
+func BenchmarkCipherBase64_256_8192(b *testing.B)  { benchmarkCipherBase64(b, 32, 8192) }
+func BenchmarkCipherBase64_256_65536(b *testing.B) { benchmarkCipherBase64(b, 32, 65536) }
