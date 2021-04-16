@@ -20,6 +20,10 @@ func (s student) GetTableName() string {
 	return "student"
 }
 
+func (s student) Size() int {
+	return len(s.Username) + len(s.Nickname) + len(s.Nickname) + 24
+}
+
 var (
 	uid       int64 = 100
 	ts, _           = time.Parse(time.UnixDate, "Sat Mar  7 11:06:39 PST 2015")

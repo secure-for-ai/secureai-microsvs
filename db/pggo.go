@@ -22,11 +22,12 @@ type PGQuerier interface {
 
 //user=jack password=secret host=pg.example.com port=5432 dbname=mydb
 type PGPoolConf struct {
-	Host   string `json:"Host"`
-	Port   string `json:"Port"`
-	DBName string `json:"DBName"`
-	User   string `json:"User"`
-	PW     string `json:"PW"`
+	Host    string `json:"Host"`
+	Port    string `json:"Port"`
+	DBName  string `json:"DBName"`
+	User    string `json:"User"`
+	PW      string `json:"PW"`
+	Verbose bool   `json:"Verbose"`
 }
 
 //type PGMultiError struct{
@@ -55,8 +56,10 @@ func NewPGClient(conf PGPoolConf) (client *PGClient, err error) {
 	if err != nil {
 		return nil, err
 	}
-	log.Println("Connected to Postgres!")
-	log.Printf("Use Database: \"%s\"\n", conf.DBName)
+	if conf.Verbose {
+		log.Println("Connected to Postgres!")
+		log.Printf("Use Database: \"%s\"\n", conf.DBName)
+	}
 	return &PGClient{*_client}, err
 }
 

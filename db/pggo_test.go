@@ -28,7 +28,9 @@ func initPG() {
 		os.Exit(1)
 	}
 
-	fmt.Println("connect to postgres")
+	if conf.Verbose {
+		fmt.Println("connect to postgres")
+	}
 }
 
 func TestPGConn(t *testing.T) {
