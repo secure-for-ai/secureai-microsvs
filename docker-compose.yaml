@@ -3,7 +3,7 @@ version: '3'
 services:
   demo-api-pg:
     #build: ./
-    image: golang:1.14
+    image: golang:1.15
     volumes:
       - ./src:/go/src/
     working_dir: /go/src/
@@ -20,7 +20,7 @@ services:
     entrypoint: go run demo_pg/main.go
   demo-api-mongo:
     #build: ./
-    image: golang:1.14
+    image: golang:1.15
     volumes:
       - ./src:/go/src/
     working_dir: /go/src/
@@ -36,7 +36,7 @@ services:
     container_name: secureai-dev-demo-api-mongo
     entrypoint: go run demo_mongo/main.go
   postgres:
-    image: postgres:12
+    image: postgres:13
     ports:
       - "7000:5432"
     volumes:
