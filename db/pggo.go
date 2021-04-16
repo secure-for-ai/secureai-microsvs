@@ -76,18 +76,18 @@ func (p *PGClient) GetConn(ctx context.Context) (*PGConn, error) {
 	return &PGConn{*conn}, nil
 }
 
-func (p *PGClient) Begin(ctx context.Context) (*PGTx, error) {
+func (p *PGClient) Begin(ctx context.Context) (*PGClientTx, error) {
 	return p.BeginTx(ctx, pgx.TxOptions{})
 }
 
-func (p *PGClient) BeginTx(ctx context.Context, txOptions pgx.TxOptions) (*PGTx, error) {
+func (p *PGClient) BeginTx(ctx context.Context, txOptions pgx.TxOptions) (*PGClientTx, error) {
 	tx, err := p.Pool.BeginTx(ctx, txOptions)
 
 	if err != nil {
 		return nil, err
 	}
 
-	return &PGTx{*(tx.(*pgxpool.Tx))}, err
+	return &PGClientTx{*(tx.(*pgxpool.Tx))}, err
 }
 
 type PGConn struct {
@@ -200,15 +200,15 @@ func (c *PGConn) Deallocate(ctx context.Context, name string) error {
 	return c.Conn.Conn().Deallocate(ctx, name)
 }
 
-type PGTx struct {
+type PGClientTx struct {
 	pgxpool.Tx
 }
 
-func (tx *PGTx) RollBackDefer(ctx context.Context) {
+func (tx *PGClientTx) RollBackDefer(ctx context.Context) {
 	_ = tx.Rollback(ctx)
 }
 
-func (tx *PGTx) ExecRowsAffected(ctx context.Context, sql string, args ...interface{}) (int64, error) {
+func (tx *PGClientTx) ExecRowsAffected(ctx context.Context, sql string, args ...interface{}) (int64, error) {
 	commandTag, err := tx.Exec(ctx, sql, args...)
 	if err != nil {
 		return 0, err
@@ -216,19 +216,19 @@ func (tx *PGTx) ExecRowsAffected(ctx context.Context, sql string, args ...interf
 	return commandTag.RowsAffected(), err
 }
 
-func (tx *PGTx) Insert(ctx context.Context, sql string, args ...interface{}) (int64, error) {
+func (tx *PGClientTx) Insert(ctx context.Context, sql string, args ...interface{}) (int64, error) {
 	return tx.ExecRowsAffected(ctx, sql, args...)
 }
 
-func (tx *PGTx) Update(ctx context.Context, sql string, args ...interface{}) (int64, error) {
+func (tx *PGClientTx) Update(ctx context.Context, sql string, args ...interface{}) (int64, error) {
 	return tx.ExecRowsAffected(ctx, sql, args...)
 }
 
-func (tx *PGTx) Delete(ctx context.Context, sql string, args ...interface{}) (int64, error) {
+func (tx *PGClientTx) Delete(ctx context.Context, sql string, args ...interface{}) (int64, error) {
 	return tx.ExecRowsAffected(ctx, sql, args...)
 }
 
-func (tx *PGTx) FindOne(ctx context.Context, sql string, result interface{}, args ...interface{}) error {
+func (tx *PGClientTx) FindOne(ctx context.Context, sql string, result interface{}, args ...interface{}) error {
 	rows, err := tx.Query(ctx, sql, args...)
 
 	if err != nil {
@@ -238,7 +238,7 @@ func (tx *PGTx) FindOne(ctx context.Context, sql string, result interface{}, arg
 	return StructScanOne(rows, result)
 }
 
-func (tx *PGTx) FindAll(ctx context.Context, sql string, result interface{}, args ...interface{}) (int64, error) {
+func (tx *PGClientTx) FindAll(ctx context.Context, sql string, result interface{}, args ...interface{}) (int64, error) {
 	rows, err := tx.Query(ctx, sql, args...)
 
 	if err != nil {
@@ -254,7 +254,7 @@ func (tx *PGTx) FindAll(ctx context.Context, sql string, result interface{}, arg
 	return rows.CommandTag().RowsAffected(), err
 }
 
-func (tx *PGTx) FindAllAsMap(ctx context.Context, sql string, result *[]map[string]interface{}, args ...interface{}) (int64, error) {
+func (tx *PGClientTx) FindAllAsMap(ctx context.Context, sql string, result *[]map[string]interface{}, args ...interface{}) (int64, error) {
 	rows, err := tx.Query(ctx, sql, args...)
 
 	if err != nil {
@@ -270,7 +270,7 @@ func (tx *PGTx) FindAllAsMap(ctx context.Context, sql string, result *[]map[stri
 	return rows.CommandTag().RowsAffected(), err
 }
 
-func (tx *PGTx) FindAllAsArray(ctx context.Context, sql string, result *[][]interface{}, args ...interface{}) (int64, error) {
+func (tx *PGClientTx) FindAllAsArray(ctx context.Context, sql string, result *[][]interface{}, args ...interface{}) (int64, error) {
 	rows, err := tx.Query(ctx, sql, args...)
 
 	if err != nil {
@@ -286,7 +286,7 @@ func (tx *PGTx) FindAllAsArray(ctx context.Context, sql string, result *[][]inte
 	return rows.CommandTag().RowsAffected(), err
 }
 
-func (tx *PGTx) Count(ctx context.Context, sql string, args ...interface{}) (int64, error) {
+func (tx *PGClientTx) Count(ctx context.Context, sql string, args ...interface{}) (int64, error) {
 	var count int64
 	rows, err := tx.Query(ctx, sql, args...)
 
@@ -305,6 +305,6 @@ func (tx *PGTx) Count(ctx context.Context, sql string, args ...interface{}) (int
 	return 0, nil
 }
 
-func (tx *PGTx) Deallocate(ctx context.Context, name string) error {
+func (tx *PGClientTx) Deallocate(ctx context.Context, name string) error {
 	return tx.Conn().Deallocate(ctx, name)
 }
