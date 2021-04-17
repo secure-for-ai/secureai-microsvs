@@ -1,4 +1,4 @@
-package db
+package sqlBuilder
 
 // Cond defines an interface
 type Cond interface {

@@ -3,15 +3,15 @@ package main
 import (
 	"context"
 	"fmt"
-	"github.com/secure-for-ai/secureai-microsvs/db"
+	"github.com/secure-for-ai/secureai-microsvs/db/pgdb"
 	"os"
 )
 
-var client *db.PGClient
+var client *pgdb.PGClient
 
 func initPG() {
 	var err error
-	conf := db.PGPoolConf{
+	conf := pgdb.PGPoolConf{
 		Host:   "localhost",
 		Port:   "7000",
 		DBName: "test",
@@ -19,7 +19,7 @@ func initPG() {
 		PW:     "password",
 	}
 
-	client, err = db.NewPGClient(conf)
+	client, err = pgdb.NewPGClient(conf)
 
 	if err != nil {
 		fmt.Println("cannot connect to postgres")

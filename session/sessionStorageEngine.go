@@ -8,7 +8,8 @@ import (
 	"github.com/go-redis/redis/v8"
 	"github.com/gorilla/sessions"
 	"github.com/secure-for-ai/secureai-microsvs/cache"
-	"github.com/secure-for-ai/secureai-microsvs/db"
+	"github.com/secure-for-ai/secureai-microsvs/db/mongodb"
+	"github.com/secure-for-ai/secureai-microsvs/db/pgdb"
 	"github.com/secure-for-ai/secureai-microsvs/util"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo/options"
@@ -220,7 +221,7 @@ func (r *RedisStoreEngine) decodeSessID(sess *sessions.Session, data []byte) err
 /* RedisMongoStoreEngine, use redis as cache and mongo as persistent storage */
 type RedisMongoStoreEngine struct {
 	RedisClient   *cache.RedisClient
-	MongoDBClient *db.MongoDBClient
+	MongoDBClient *mongodb.Client
 	Serializer    DataSerializer
 	Prefix        string
 	IDGenerator   SessIDGenerator
@@ -396,7 +397,7 @@ func (r *RedisMongoStoreEngine) decodeSessID(sess *sessions.Session, data []byte
 /* RedisPGEngine, use redis as cache and postgres as persistent storage */
 type RedisPGStoreEngine struct {
 	RedisClient *cache.RedisClient
-	PGClient    *db.PGClient
+	PGClient    *pgdb.PGClient
 	Serializer  DataSerializer
 	Prefix      string
 	IDGenerator SessIDGenerator

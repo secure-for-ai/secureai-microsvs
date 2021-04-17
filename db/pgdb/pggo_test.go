@@ -1,19 +1,39 @@
-package db_test
+package pgdb_test
 
 import (
 	"context"
 	"fmt"
-	"github.com/secure-for-ai/secureai-microsvs/db"
+	"github.com/secure-for-ai/secureai-microsvs/db/pgdb"
+	"github.com/secure-for-ai/secureai-microsvs/db/sqlBuilder"
 	"github.com/stretchr/testify/assert"
 	"os"
 	"testing"
+	"time"
 )
 
-var client *db.PGClient
+var client *pgdb.PGClient
+var ts, _ = time.Parse(time.UnixDate, "Sat Mar  7 11:06:39 PST 2015")
+
+type student struct {
+	Uid        int64  `db:"uid"`
+	Username   string `db:"username"`
+	Nickname   string `db:"nickname"`
+	Email      string `db:"email"`
+	CreateTime int64  `db:"create_time"`
+	UpdateTime int64  `db:"update_time"`
+}
+
+func (s student) GetTableName() string {
+	return "student"
+}
+
+func (s student) Size() int {
+	return len(s.Username) + len(s.Nickname) + len(s.Nickname) + 24
+}
 
 func initPG() {
 	var err error
-	conf := db.PGPoolConf{
+	conf := pgdb.PGPoolConf{
 		Host:   "localhost",
 		Port:   "7000",
 		DBName: "test",
@@ -21,7 +41,7 @@ func initPG() {
 		PW:     "password",
 	}
 
-	client, err = db.NewPGClient(conf)
+	client, err = pgdb.NewPGClient(conf)
 
 	if err != nil {
 		fmt.Println("cannot connect to postgres")
@@ -74,28 +94,28 @@ func TestPGConn(t *testing.T) {
 	}
 	defer conn.Release()
 
-	affectedRow, err := db.Insert(&exStu).ExecPG(conn, ctx)
+	affectedRow, err := sqlBuilder.Insert(&exStu).ExecPG(conn, ctx)
 	assert.NoError(t, err)
 	assert.EqualValues(t, 1, affectedRow)
 
-	affectedRow, err = db.Select(&exStu).Where(db.Map{"uid": exUid}).ExecPG(conn, ctx, &reStu)
+	affectedRow, err = sqlBuilder.Select(&exStu).Where(sqlBuilder.Map{"uid": exUid}).ExecPG(conn, ctx, &reStu)
 	assert.NoError(t, err)
 	assert.EqualValues(t, 1, affectedRow)
 	assert.EqualValues(t, exStu, reStu)
 
-	affectedRow, err = db.Select(&exStu).Where(db.Map{"uid": exUid}).Limit(10).ExecPG(conn, ctx, &reStuSlice)
+	affectedRow, err = sqlBuilder.Select(&exStu).Where(sqlBuilder.Map{"uid": exUid}).Limit(10).ExecPG(conn, ctx, &reStuSlice)
 	assert.NoError(t, err)
 	assert.EqualValues(t, 1, affectedRow)
 	assert.EqualValues(t, 1, len(reStuSlice))
 	assert.EqualValues(t, exStu, reStuSlice[0])
 
-	affectedRow, err = db.Select(&exStu).Where(db.Map{"uid": exUid}).Limit(10).ExecPG(conn, ctx, &resMaps)
+	affectedRow, err = sqlBuilder.Select(&exStu).Where(sqlBuilder.Map{"uid": exUid}).Limit(10).ExecPG(conn, ctx, &resMaps)
 	assert.NoError(t, err)
 	assert.EqualValues(t, 1, affectedRow)
 	assert.EqualValues(t, 1, len(resMaps))
 	assert.EqualValues(t, exStuMap, resMaps[0])
 
-	affectedRow, err = db.Select(&exStu).Where(db.Map{"uid": exUid}).ExecPG(conn, ctx, &resArr)
+	affectedRow, err = sqlBuilder.Select(&exStu).Where(sqlBuilder.Map{"uid": exUid}).ExecPG(conn, ctx, &resArr)
 	assert.NoError(t, err)
 	assert.EqualValues(t, 1, affectedRow)
 	assert.EqualValues(t, exStuArr, resArr)
@@ -103,16 +123,16 @@ func TestPGConn(t *testing.T) {
 	now := ts.Unix()
 	exStu.Username = "Bob"
 	exStu.UpdateTime = now
-	affectedRow, err = db.Update(&exStu).Where(db.Map{"uid": exUid}).ExecPG(conn, ctx, &resArr)
+	affectedRow, err = sqlBuilder.Update(&exStu).Where(sqlBuilder.Map{"uid": exUid}).ExecPG(conn, ctx, &resArr)
 	assert.NoError(t, err)
 	assert.EqualValues(t, 1, affectedRow)
 
-	affectedRow, err = db.Select(&exStu).Where(db.Map{"uid": exUid}).ExecPG(conn, ctx, &reStu)
+	affectedRow, err = sqlBuilder.Select(&exStu).Where(sqlBuilder.Map{"uid": exUid}).ExecPG(conn, ctx, &reStu)
 	assert.NoError(t, err)
 	assert.EqualValues(t, 1, affectedRow)
 	assert.EqualValues(t, exStu, reStu)
 
-	affectedRow, err = db.Delete(&exStu).Where(db.Map{"uid": exUid}).ExecPG(conn, ctx)
+	affectedRow, err = sqlBuilder.Delete(&exStu).Where(sqlBuilder.Map{"uid": exUid}).ExecPG(conn, ctx)
 	assert.NoError(t, err)
 	assert.EqualValues(t, 1, affectedRow)
 }
@@ -158,28 +178,28 @@ func TestPGTx(t *testing.T) {
 	}
 	defer tx.RollBackDefer(ctx)
 
-	affectedRow, err := db.Insert(&exStu).ExecPG(tx, ctx)
+	affectedRow, err := sqlBuilder.Insert(&exStu).ExecPG(tx, ctx)
 	assert.NoError(t, err)
 	assert.EqualValues(t, 1, affectedRow)
 
-	affectedRow, err = db.Select(&exStu).Where(db.Map{"uid": exUid}).ExecPG(tx, ctx, &reStu)
+	affectedRow, err = sqlBuilder.Select(&exStu).Where(sqlBuilder.Map{"uid": exUid}).ExecPG(tx, ctx, &reStu)
 	assert.NoError(t, err)
 	assert.EqualValues(t, 1, affectedRow)
 	assert.EqualValues(t, exStu, reStu)
 
-	affectedRow, err = db.Select(&exStu).Where(db.Map{"uid": exUid}).Limit(10).ExecPG(tx, ctx, &reStuSlice)
+	affectedRow, err = sqlBuilder.Select(&exStu).Where(sqlBuilder.Map{"uid": exUid}).Limit(10).ExecPG(tx, ctx, &reStuSlice)
 	assert.NoError(t, err)
 	assert.EqualValues(t, 1, affectedRow)
 	assert.EqualValues(t, 1, len(reStuSlice))
 	assert.EqualValues(t, exStu, reStuSlice[0])
 
-	affectedRow, err = db.Select(&exStu).Where(db.Map{"uid": exUid}).Limit(10).ExecPG(tx, ctx, &resMaps)
+	affectedRow, err = sqlBuilder.Select(&exStu).Where(sqlBuilder.Map{"uid": exUid}).Limit(10).ExecPG(tx, ctx, &resMaps)
 	assert.NoError(t, err)
 	assert.EqualValues(t, 1, affectedRow)
 	assert.EqualValues(t, 1, len(resMaps))
 	assert.EqualValues(t, exStuMap, resMaps[0])
 
-	affectedRow, err = db.Select(&exStu).Where(db.Map{"uid": exUid}).ExecPG(tx, ctx, &resArr)
+	affectedRow, err = sqlBuilder.Select(&exStu).Where(sqlBuilder.Map{"uid": exUid}).ExecPG(tx, ctx, &resArr)
 	assert.NoError(t, err)
 	assert.EqualValues(t, 1, affectedRow)
 	assert.EqualValues(t, exStuArr, resArr)
@@ -187,16 +207,16 @@ func TestPGTx(t *testing.T) {
 	now := ts.Unix()
 	exStu.Username = "Bob"
 	exStu.UpdateTime = now
-	affectedRow, err = db.Update(&exStu).Where(db.Map{"uid": exUid}).ExecPG(tx, ctx, &resArr)
+	affectedRow, err = sqlBuilder.Update(&exStu).Where(sqlBuilder.Map{"uid": exUid}).ExecPG(tx, ctx, &resArr)
 	assert.NoError(t, err)
 	assert.EqualValues(t, 1, affectedRow)
 
-	affectedRow, err = db.Select(&exStu).Where(db.Map{"uid": exUid}).ExecPG(tx, ctx, &reStu)
+	affectedRow, err = sqlBuilder.Select(&exStu).Where(sqlBuilder.Map{"uid": exUid}).ExecPG(tx, ctx, &reStu)
 	assert.NoError(t, err)
 	assert.EqualValues(t, 1, affectedRow)
 	assert.EqualValues(t, exStu, reStu)
 
-	affectedRow, err = db.Delete(&exStu).Where(db.Map{"uid": exUid}).ExecPG(tx, ctx)
+	affectedRow, err = sqlBuilder.Delete(&exStu).Where(sqlBuilder.Map{"uid": exUid}).ExecPG(tx, ctx)
 	assert.NoError(t, err)
 	assert.EqualValues(t, 1, affectedRow)
 

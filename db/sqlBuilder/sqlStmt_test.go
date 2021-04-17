@@ -1,7 +1,7 @@
-package db_test
+package sqlBuilder_test
 
 import (
-	"github.com/secure-for-ai/secureai-microsvs/db"
+	"github.com/secure-for-ai/secureai-microsvs/db/sqlBuilder"
 	"github.com/stretchr/testify/assert"
 	"testing"
 	"time"
@@ -41,14 +41,14 @@ var (
 		stuStruct,
 		stuStruct,
 	}
-	eqCond = db.Map{
+	eqCond = sqlBuilder.Map{
 		"uid":      uid,
 		"username": "Alice",
 	}
-	stuMap = db.Map{
+	stuMap = sqlBuilder.Map{
 		"uid": uid,
 	}
-	stuVal = db.Map{
+	stuVal = sqlBuilder.Map{
 		"uid":         uid,
 		"username":    "Alice",
 		"nickname":    "Ali",
@@ -75,15 +75,15 @@ func TestSQLStmt_Insert(t *testing.T) {
 		assert.EqualValues(t, stuStructArrSorted, args)
 	}
 
-	sql, args, err = db.SQL().Insert(&stuStruct).Gen()
+	sql, args, err = sqlBuilder.SQL().Insert(&stuStruct).Gen()
 	evalSingle()
-	sql, args, err = db.Insert().IntoTable(&stuStruct).Values(&stuStruct).Gen()
+	sql, args, err = sqlBuilder.Insert().IntoTable(&stuStruct).Values(&stuStruct).Gen()
 	evalSingle()
-	sql, args, err = db.Insert().IntoTable("student").Values(stuVal).Gen()
+	sql, args, err = sqlBuilder.Insert().IntoTable("student").Values(stuVal).Gen()
 	evalSingleMap()
-	sql, args, err = db.Insert().IntoTable("student").ValuesBulk([]interface{}{stuVal}).Gen()
+	sql, args, err = sqlBuilder.Insert().IntoTable("student").ValuesBulk([]interface{}{stuVal}).Gen()
 	evalSingleMap()
-	sql, args, err = db.Insert().IntoTable("student").ValuesBulk([]interface{}{stuStruct}).Gen()
+	sql, args, err = sqlBuilder.Insert().IntoTable("student").ValuesBulk([]interface{}{stuStruct}).Gen()
 	evalSingle()
 
 	evalBulk := func() {
@@ -91,19 +91,19 @@ func TestSQLStmt_Insert(t *testing.T) {
 		assert.EqualValues(t, "INSERT INTO student (uid,username,nickname,email,create_time,update_time) VALUES (?,?,?,?,?,?)", sql)
 		assert.EqualValues(t, []interface{}{stuStructArr, stuStructArr}, args)
 	}
-	sql, args, err = db.Insert(&stuStruct, &stuStruct).Gen()
+	sql, args, err = sqlBuilder.Insert(&stuStruct, &stuStruct).Gen()
 	evalBulk()
-	sql, args, err = db.InsertBulk(stuList).Gen()
+	sql, args, err = sqlBuilder.InsertBulk(stuList).Gen()
 	evalBulk()
-	sql, args, err = db.InsertBulk(&stuList).Gen()
+	sql, args, err = sqlBuilder.InsertBulk(&stuList).Gen()
 	evalBulk()
-	sql, args, err = db.InsertBulk([]interface{}{stuStruct, stuStruct}).Gen()
+	sql, args, err = sqlBuilder.InsertBulk([]interface{}{stuStruct, stuStruct}).Gen()
 	evalBulk()
-	sql, args, err = db.InsertBulk(&[]interface{}{stuStruct, stuStruct}).Gen()
+	sql, args, err = sqlBuilder.InsertBulk(&[]interface{}{stuStruct, stuStruct}).Gen()
 	evalBulk()
-	sql, args, err = db.InsertBulk([]interface{}{&stuStruct, &stuStruct}).Gen()
+	sql, args, err = sqlBuilder.InsertBulk([]interface{}{&stuStruct, &stuStruct}).Gen()
 	evalBulk()
-	sql, args, err = db.InsertBulk(&[]interface{}{&stuStruct, &stuStruct}).Gen()
+	sql, args, err = sqlBuilder.InsertBulk(&[]interface{}{&stuStruct, &stuStruct}).Gen()
 	evalBulk()
 
 	evalSelect1 := func() {
@@ -112,9 +112,9 @@ func TestSQLStmt_Insert(t *testing.T) {
 		assert.EqualValues(t, []interface{}{uid}, args)
 	}
 
-	sql, args, err = db.Insert().IntoTable("student").Select(stuStruct).Where(stuMap).Gen()
+	sql, args, err = sqlBuilder.Insert().IntoTable("student").Select(stuStruct).Where(stuMap).Gen()
 	evalSelect1()
-	sql, args, err = db.Insert().IntoTable(&stuStruct).Select(&stuStruct).Where(stuMap).Gen()
+	sql, args, err = sqlBuilder.Insert().IntoTable(&stuStruct).Select(&stuStruct).Where(stuMap).Gen()
 	evalSelect1()
 
 	evalSelect2 := func() {
@@ -122,7 +122,7 @@ func TestSQLStmt_Insert(t *testing.T) {
 		assert.EqualValues(t, "INSERT INTO student (uid,username,nickname,email,create_time,update_time) SELECT uid,username,nickname,email,create_time,update_time FROM student WHERE uid = ?", sql)
 		assert.EqualValues(t, []interface{}{uid}, args)
 	}
-	sql, args, err = db.Insert(&stuStruct).Select(&stuStruct).Where(stuMap).Gen()
+	sql, args, err = sqlBuilder.Insert(&stuStruct).Select(&stuStruct).Where(stuMap).Gen()
 	evalSelect2()
 }
 
@@ -130,31 +130,31 @@ func TestSQLStmt_Delete(t *testing.T) {
 	var sql string
 	var args []interface{}
 	var err error
-	var uidEq100 = db.Expr("uid = ??", uid)
-	var usernameEqAlice = db.Expr("username = ??", "Alice")
+	var uidEq100 = sqlBuilder.Expr("uid = ??", uid)
+	var usernameEqAlice = sqlBuilder.Expr("username = ??", "Alice")
 
 	evalStruct := func() {
 		assert.NoError(t, err)
 		assert.EqualValues(t, "DELETE FROM student WHERE uid = ?", sql)
 		assert.EqualValues(t, []interface{}{uid}, args)
 	}
-	sql, args, err = db.SQL().Delete(&stuStruct, uidEq100).Gen()
+	sql, args, err = sqlBuilder.SQL().Delete(&stuStruct, uidEq100).Gen()
 	evalStruct()
-	sql, args, err = db.Delete(&stuStruct, uidEq100).Gen()
+	sql, args, err = sqlBuilder.Delete(&stuStruct, uidEq100).Gen()
 	evalStruct()
-	sql, args, err = db.Delete(&stuStruct, stuMap).Gen()
+	sql, args, err = sqlBuilder.Delete(&stuStruct, stuMap).Gen()
 	evalStruct()
-	sql, args, err = db.Delete(&stuStruct).Where(uidEq100).Gen()
+	sql, args, err = sqlBuilder.Delete(&stuStruct).Where(uidEq100).Gen()
 	evalStruct()
-	sql, args, err = db.Delete().From(&stuStruct).Where(uidEq100).Gen()
+	sql, args, err = sqlBuilder.Delete().From(&stuStruct).Where(uidEq100).Gen()
 	evalStruct()
-	sql, args, err = db.Delete("student", uidEq100).Gen()
+	sql, args, err = sqlBuilder.Delete("student", uidEq100).Gen()
 	evalStruct()
-	sql, args, err = db.Delete("student").Where(uidEq100).Gen()
+	sql, args, err = sqlBuilder.Delete("student").Where(uidEq100).Gen()
 	evalStruct()
-	sql, args, err = db.Delete().From("student").Where(uidEq100).Gen()
+	sql, args, err = sqlBuilder.Delete().From("student").Where(uidEq100).Gen()
 	evalStruct()
-	sql, args, err = db.Delete().From("student").Where("uid = ??", uid).Gen()
+	sql, args, err = sqlBuilder.Delete().From("student").Where("uid = ??", uid).Gen()
 	evalStruct()
 
 	evalAnd := func() {
@@ -162,13 +162,13 @@ func TestSQLStmt_Delete(t *testing.T) {
 		assert.EqualValues(t, "DELETE FROM student WHERE (uid = ?) AND (username = ?)", sql)
 		assert.EqualValues(t, []interface{}{uid, "Alice"}, args)
 	}
-	sql, args, err = db.Delete(&stuStruct, uidEq100, usernameEqAlice).Gen()
+	sql, args, err = sqlBuilder.Delete(&stuStruct, uidEq100, usernameEqAlice).Gen()
 	evalAnd()
-	sql, args, err = db.Delete(&stuStruct, uidEq100).Where(usernameEqAlice).Gen()
+	sql, args, err = sqlBuilder.Delete(&stuStruct, uidEq100).Where(usernameEqAlice).Gen()
 	evalAnd()
-	sql, args, err = db.Delete(&stuStruct).Where(uidEq100, usernameEqAlice).Gen()
+	sql, args, err = sqlBuilder.Delete(&stuStruct).Where(uidEq100, usernameEqAlice).Gen()
 	evalAnd()
-	sql, args, err = db.Delete(&stuStruct).Where(uidEq100).And(usernameEqAlice).Gen()
+	sql, args, err = sqlBuilder.Delete(&stuStruct).Where(uidEq100).And(usernameEqAlice).Gen()
 	evalAnd()
 
 	evalEmpty := func() {
@@ -176,7 +176,7 @@ func TestSQLStmt_Delete(t *testing.T) {
 		assert.EqualValues(t, "DELETE FROM student", sql)
 		assert.EqualValues(t, []interface{}{}, args)
 	}
-	sql, args, err = db.Delete(&stuStruct).Gen()
+	sql, args, err = sqlBuilder.Delete(&stuStruct).Gen()
 	evalEmpty()
 
 }
@@ -186,8 +186,8 @@ func TestSQLStmt_Update(t *testing.T) {
 	var args []interface{}
 	var err error
 
-	var uidEq100 = db.Expr("uid = ??", uid)
-	var usernameEqAlice = db.Expr("username = ??", "Alice")
+	var uidEq100 = sqlBuilder.Expr("uid = ??", uid)
+	var usernameEqAlice = sqlBuilder.Expr("username = ??", "Alice")
 
 	evalStruct := func() {
 		assert.NoError(t, err)
@@ -197,23 +197,22 @@ func TestSQLStmt_Update(t *testing.T) {
 		assert.EqualValues(t, append(stuStructArr, uid), args)
 	}
 
-	sql, args, err = db.SQL().Update(&stuStruct, uidEq100).Gen()
+	sql, args, err = sqlBuilder.SQL().Update(&stuStruct, uidEq100).Gen()
 	evalStruct()
-	sql, args, err = db.Update(&stuStruct, uidEq100).Gen()
+	sql, args, err = sqlBuilder.Update(&stuStruct, uidEq100).Gen()
 	evalStruct()
-	sql, args, err = db.Update(&stuStruct, db.Map{"uid": uid}).Gen()
+	sql, args, err = sqlBuilder.Update(&stuStruct, sqlBuilder.Map{"uid": uid}).Gen()
 	evalStruct()
-	sql, args, err = db.Update(&stuStruct).Where(uidEq100).Gen()
+	sql, args, err = sqlBuilder.Update(&stuStruct).Where(uidEq100).Gen()
 	evalStruct()
-	sql, args, err = db.Update("student").Set(&stuStruct).Where(uidEq100).Gen()
+	sql, args, err = sqlBuilder.Update("student").Set(&stuStruct).Where(uidEq100).Gen()
 	evalStruct()
-	sql, args, err = db.Update().From(&stuStruct).Set(&stuStruct).Where(uidEq100).Gen()
+	sql, args, err = sqlBuilder.Update().From(&stuStruct).Set(&stuStruct).Where(uidEq100).Gen()
 	evalStruct()
-	sql, args, err = db.Update().From("student").Set(&stuStruct).Where(uidEq100).Gen()
+	sql, args, err = sqlBuilder.Update().From("student").Set(&stuStruct).Where(uidEq100).Gen()
 	evalStruct()
-	sql, args, err = db.
-		Update().From(&stuStruct).
-		Set("uid", db.Expr("??", uid)).
+	sql, args, err = sqlBuilder.Update().From(&stuStruct).
+		Set("uid", sqlBuilder.Expr("??", uid)).
 		Set("username", "??", "Alice").
 		Set("nickname", "??", "Ali").
 		Set("email", "??", "ali@gmail.com").
@@ -227,15 +226,15 @@ func TestSQLStmt_Update(t *testing.T) {
 		assert.EqualValues(t, "UPDATE student SET uid = ?", sql)
 		assert.EqualValues(t, []interface{}{uid}, args)
 	}
-	sql, args, err = db.Update(stuMap).From(&stuStruct).Gen()
+	sql, args, err = sqlBuilder.Update(stuMap).From(&stuStruct).Gen()
 	evalMap()
-	sql, args, err = db.Update(stuMap).From("student").Gen()
+	sql, args, err = sqlBuilder.Update(stuMap).From("student").Gen()
 	evalMap()
-	sql, args, err = db.Update().From(&stuStruct).Set(stuMap).Gen()
+	sql, args, err = sqlBuilder.Update().From(&stuStruct).Set(stuMap).Gen()
 	evalMap()
-	sql, args, err = db.Update().From("student").Set(stuMap).Gen()
+	sql, args, err = sqlBuilder.Update().From("student").Set(stuMap).Gen()
 	evalMap()
-	sql, args, err = db.Update("student").Set(stuMap).Gen()
+	sql, args, err = sqlBuilder.Update("student").Set(stuMap).Gen()
 	evalMap()
 
 	evalWhere := func() {
@@ -246,17 +245,17 @@ func TestSQLStmt_Update(t *testing.T) {
 		assert.EqualValues(t, append(stuStructArr, uid, "Alice"), args)
 	}
 
-	sql, args, err = db.Update(&stuStruct, eqCond).Gen()
+	sql, args, err = sqlBuilder.Update(&stuStruct, eqCond).Gen()
 	evalWhere()
-	sql, args, err = db.Update(&stuStruct).Where(eqCond).Gen()
+	sql, args, err = sqlBuilder.Update(&stuStruct).Where(eqCond).Gen()
 	evalWhere()
-	sql, args, err = db.Update(&stuStruct, uidEq100, usernameEqAlice).Gen()
+	sql, args, err = sqlBuilder.Update(&stuStruct, uidEq100, usernameEqAlice).Gen()
 	evalWhere()
-	sql, args, err = db.Update(&stuStruct, uidEq100).Where(usernameEqAlice).Gen()
+	sql, args, err = sqlBuilder.Update(&stuStruct, uidEq100).Where(usernameEqAlice).Gen()
 	evalWhere()
-	sql, args, err = db.Update(&stuStruct).Where(uidEq100, usernameEqAlice).Gen()
+	sql, args, err = sqlBuilder.Update(&stuStruct).Where(uidEq100, usernameEqAlice).Gen()
 	evalWhere()
-	sql, args, err = db.Update(&stuStruct).Where(uidEq100).And(usernameEqAlice).Gen()
+	sql, args, err = sqlBuilder.Update(&stuStruct).Where(uidEq100).And(usernameEqAlice).Gen()
 	evalWhere()
 
 	evalIncr := func() {
@@ -264,7 +263,7 @@ func TestSQLStmt_Update(t *testing.T) {
 		assert.EqualValues(t, "UPDATE student SET uid = uid + ? WHERE uid = ?", sql)
 		assert.EqualValues(t, []interface{}{10, uid}, args)
 	}
-	sql, args, err = db.Update("student").Incr("uid", 10).Where(uidEq100).Gen()
+	sql, args, err = sqlBuilder.Update("student").Incr("uid", 10).Where(uidEq100).Gen()
 	evalIncr()
 
 	evalDecr := func() {
@@ -272,7 +271,7 @@ func TestSQLStmt_Update(t *testing.T) {
 		assert.EqualValues(t, "UPDATE student SET uid = uid - ? WHERE uid = ?", sql)
 		assert.EqualValues(t, []interface{}{10, uid}, args)
 	}
-	sql, args, err = db.Update("student").Decr("uid", 10).Where(uidEq100).Gen()
+	sql, args, err = sqlBuilder.Update("student").Decr("uid", 10).Where(uidEq100).Gen()
 	evalDecr()
 }
 
@@ -280,8 +279,8 @@ func TestSQLStmt_Select(t *testing.T) {
 	var sql string
 	var args []interface{}
 	var err error
-	var uidEq100 = db.Expr("uid = ??", 100)
-	var usernameEqAlice = db.Expr("username = ??", "Alice")
+	var uidEq100 = sqlBuilder.Expr("uid = ??", 100)
+	var usernameEqAlice = sqlBuilder.Expr("username = ??", "Alice")
 
 	evalStruct := func() {
 		assert.NoError(t, err)
@@ -289,21 +288,21 @@ func TestSQLStmt_Select(t *testing.T) {
 		assert.EqualValues(t, []interface{}{100}, args)
 	}
 
-	sql, args, err = db.SQL().Select(&stuStruct, uidEq100).Gen()
+	sql, args, err = sqlBuilder.SQL().Select(&stuStruct, uidEq100).Gen()
 	evalStruct()
-	sql, args, err = db.Select(&stuStruct, uidEq100).Gen()
+	sql, args, err = sqlBuilder.Select(&stuStruct, uidEq100).Gen()
 	evalStruct()
-	sql, args, err = db.Select(&stuStruct).Where(uidEq100).Gen()
+	sql, args, err = sqlBuilder.Select(&stuStruct).Where(uidEq100).Gen()
 	evalStruct()
-	sql, args, err = db.Select([]string{"uid", "username", "nickname", "email", "create_time", "update_time"}).From(&stuStruct).Where(uidEq100).Gen()
+	sql, args, err = sqlBuilder.Select([]string{"uid", "username", "nickname", "email", "create_time", "update_time"}).From(&stuStruct).Where(uidEq100).Gen()
 	evalStruct()
-	sql, args, err = db.Select(db.Columns{"uid", "username", "nickname", "email", "create_time", "update_time"}).From(&stuStruct).Where(uidEq100).Gen()
+	sql, args, err = sqlBuilder.Select(sqlBuilder.Columns{"uid", "username", "nickname", "email", "create_time", "update_time"}).From(&stuStruct).Where(uidEq100).Gen()
 	evalStruct()
-	sql, args, err = db.Select().SelectColumns(&stuStruct).From(&stuStruct).Where(uidEq100).Gen()
+	sql, args, err = sqlBuilder.Select().SelectColumns(&stuStruct).From(&stuStruct).Where(uidEq100).Gen()
 	evalStruct()
-	sql, args, err = db.Select().SelectColumns([]string{"uid", "username", "nickname", "email", "create_time", "update_time"}).From(&stuStruct).Where(uidEq100).Gen()
+	sql, args, err = sqlBuilder.Select().SelectColumns([]string{"uid", "username", "nickname", "email", "create_time", "update_time"}).From(&stuStruct).Where(uidEq100).Gen()
 	evalStruct()
-	sql, args, err = db.Select().SelectColumns(db.Columns{"uid", "username", "nickname", "email", "create_time", "update_time"}).From(&stuStruct).Where(uidEq100).Gen()
+	sql, args, err = sqlBuilder.Select().SelectColumns(sqlBuilder.Columns{"uid", "username", "nickname", "email", "create_time", "update_time"}).From(&stuStruct).Where(uidEq100).Gen()
 	evalStruct()
 
 	evalAnd := func() {
@@ -312,13 +311,13 @@ func TestSQLStmt_Select(t *testing.T) {
 		assert.EqualValues(t, []interface{}{100, "Alice"}, args)
 	}
 
-	sql, args, err = db.Select(&stuStruct, uidEq100, usernameEqAlice).Gen()
+	sql, args, err = sqlBuilder.Select(&stuStruct, uidEq100, usernameEqAlice).Gen()
 	evalAnd()
-	sql, args, err = db.Select(&stuStruct, uidEq100).Where(usernameEqAlice).Gen()
+	sql, args, err = sqlBuilder.Select(&stuStruct, uidEq100).Where(usernameEqAlice).Gen()
 	evalAnd()
-	sql, args, err = db.Select(&stuStruct).Where(uidEq100, usernameEqAlice).Gen()
+	sql, args, err = sqlBuilder.Select(&stuStruct).Where(uidEq100, usernameEqAlice).Gen()
 	evalAnd()
-	sql, args, err = db.Select(&stuStruct).Where(uidEq100).And(usernameEqAlice).Gen()
+	sql, args, err = sqlBuilder.Select(&stuStruct).Where(uidEq100).And(usernameEqAlice).Gen()
 	evalAnd()
 
 	evalAny := func() {
@@ -326,11 +325,11 @@ func TestSQLStmt_Select(t *testing.T) {
 		assert.EqualValues(t, "SELECT * FROM student", sql)
 		assert.EqualValues(t, []interface{}{}, args)
 	}
-	sql, args, err = db.Select().From(&stuStruct).Gen()
+	sql, args, err = sqlBuilder.Select().From(&stuStruct).Gen()
 	evalAny()
-	sql, args, err = db.Select().From("student").Gen()
+	sql, args, err = sqlBuilder.Select().From("student").Gen()
 	evalAny()
-	sql, args, err = db.Select("student").Gen()
+	sql, args, err = sqlBuilder.Select("student").Gen()
 	evalAny()
 }
 
@@ -345,15 +344,15 @@ func TestSQLStmt_OrderBy(t *testing.T) {
 		assert.EqualValues(t, "SELECT * FROM student ORDER BY uid ASC, username DESC", sql)
 		assert.EqualValues(t, []interface{}{}, args)
 	}
-	sql, args, err = db.Select().From(&stuStruct).Asc("uid").Desc("username").Gen()
+	sql, args, err = sqlBuilder.Select().From(&stuStruct).Asc("uid").Desc("username").Gen()
 	eval()
-	sql, args, err = db.Select().From(&stuStruct).OrderBy().Asc("uid").Desc("username").Gen()
+	sql, args, err = sqlBuilder.Select().From(&stuStruct).OrderBy().Asc("uid").Desc("username").Gen()
 	eval()
-	sql, args, err = db.Select().From(&stuStruct).OrderBy("uid ASC", "username DESC").Gen()
+	sql, args, err = sqlBuilder.Select().From(&stuStruct).OrderBy("uid ASC", "username DESC").Gen()
 	eval()
-	sql, args, err = db.Select().From(&stuStruct).OrderBy([]string{"uid ASC", "username DESC"}...).Gen()
+	sql, args, err = sqlBuilder.Select().From(&stuStruct).OrderBy([]string{"uid ASC", "username DESC"}...).Gen()
 	eval()
-	sql, args, err = db.Select().From(&stuStruct).OrderBy(db.Columns{"uid ASC", "username DESC"}...).Gen()
+	sql, args, err = sqlBuilder.Select().From(&stuStruct).OrderBy(sqlBuilder.Columns{"uid ASC", "username DESC"}...).Gen()
 	eval()
 
 	evalASC := func() {
@@ -361,9 +360,9 @@ func TestSQLStmt_OrderBy(t *testing.T) {
 		assert.EqualValues(t, "SELECT * FROM student ORDER BY uid ASC, username ASC", sql)
 		assert.EqualValues(t, []interface{}{}, args)
 	}
-	sql, args, err = db.Select().From(&stuStruct).Asc("uid").Asc("username").Gen()
+	sql, args, err = sqlBuilder.Select().From(&stuStruct).Asc("uid").Asc("username").Gen()
 	evalASC()
-	sql, args, err = db.Select().From(&stuStruct).Asc("uid", "username").Gen()
+	sql, args, err = sqlBuilder.Select().From(&stuStruct).Asc("uid", "username").Gen()
 	evalASC()
 
 	evalDESC := func() {
@@ -371,9 +370,9 @@ func TestSQLStmt_OrderBy(t *testing.T) {
 		assert.EqualValues(t, "SELECT * FROM student ORDER BY uid DESC, username DESC", sql)
 		assert.EqualValues(t, []interface{}{}, args)
 	}
-	sql, args, err = db.Select().From(&stuStruct).Desc("uid").Desc("username").Gen()
+	sql, args, err = sqlBuilder.Select().From(&stuStruct).Desc("uid").Desc("username").Gen()
 	evalDESC()
-	sql, args, err = db.Select().From(&stuStruct).Desc("uid", "username").Gen()
+	sql, args, err = sqlBuilder.Select().From(&stuStruct).Desc("uid", "username").Gen()
 	evalDESC()
 }
 
@@ -383,25 +382,25 @@ func TestSQLStmt_Limit(t *testing.T) {
 	var args []interface{}
 	var err error
 
-	sql, args, err = db.Select().From(&stuStruct).Limit(10, 5).Gen()
+	sql, args, err = sqlBuilder.Select().From(&stuStruct).Limit(10, 5).Gen()
 	assert.NoError(t, err)
 	assert.EqualValues(t, "SELECT * FROM student LIMIT 10 OFFSET 5", sql)
 	assert.EqualValues(t, []interface{}{}, args)
 
-	sql, args, err = db.Select().From(&stuStruct).Limit(10).Gen()
+	sql, args, err = sqlBuilder.Select().From(&stuStruct).Limit(10).Gen()
 	assert.NoError(t, err)
 	assert.EqualValues(t, "SELECT * FROM student LIMIT 10", sql)
 	assert.EqualValues(t, []interface{}{}, args)
 
-	sql, args, err = db.Select().From(&stuStruct).Limit(10, 0).Gen()
+	sql, args, err = sqlBuilder.Select().From(&stuStruct).Limit(10, 0).Gen()
 	assert.NoError(t, err)
 	assert.EqualValues(t, "SELECT * FROM student LIMIT 10", sql)
 	assert.EqualValues(t, []interface{}{}, args)
 
-	_, _, err = db.Select().From(&stuStruct).Limit(-1, 0).Gen()
-	assert.EqualError(t, err, db.ErrInvalidLimitation.Error())
-	_, _, err = db.Select().From(&stuStruct).Limit(10, -1).Gen()
-	assert.EqualError(t, err, db.ErrInvalidLimitation.Error())
+	_, _, err = sqlBuilder.Select().From(&stuStruct).Limit(-1, 0).Gen()
+	assert.EqualError(t, err, sqlBuilder.ErrInvalidLimitation.Error())
+	_, _, err = sqlBuilder.Select().From(&stuStruct).Limit(10, -1).Gen()
+	assert.EqualError(t, err, sqlBuilder.ErrInvalidLimitation.Error())
 }
 
 // TestSQLStmt_GroupBy_Having test sqlStmt.GroupBy and sqlStmt.Havng
@@ -410,7 +409,7 @@ func TestSQLStmt_GroupBy_Having(t *testing.T) {
 	var args []interface{}
 	var err error
 
-	var uidGe100 = db.Expr("COUNT(uid)>??", uid)
+	var uidGe100 = sqlBuilder.Expr("COUNT(uid)>??", uid)
 	//var usernameEqAlice = db.Expr("username = ?", "Alice")
 
 	eval := func() {
@@ -418,7 +417,7 @@ func TestSQLStmt_GroupBy_Having(t *testing.T) {
 		assert.EqualValues(t, "SELECT uid,username,nickname,email,create_time,update_time FROM student GROUP BY username HAVING COUNT(uid)>?", sql)
 		assert.EqualValues(t, []interface{}{uid}, args)
 	}
-	sql, args, err = db.SQL().Select(&stuStruct).GroupBy("username").Having(uidGe100).Gen()
+	sql, args, err = sqlBuilder.SQL().Select(&stuStruct).GroupBy("username").Having(uidGe100).Gen()
 	eval()
 
 	evalAnd := func() {
@@ -427,11 +426,11 @@ func TestSQLStmt_GroupBy_Having(t *testing.T) {
 		assert.EqualValues(t, []interface{}{uid, uid}, args)
 	}
 
-	sql, args, err = db.SQL().Select(&stuStruct).GroupBy("username").Having(uidGe100, uidGe100).Gen()
+	sql, args, err = sqlBuilder.SQL().Select(&stuStruct).GroupBy("username").Having(uidGe100, uidGe100).Gen()
 	evalAnd()
-	sql, args, err = db.SQL().Select(&stuStruct).GroupBy("username").Having(uidGe100).HavingAnd(uidGe100).Gen()
+	sql, args, err = sqlBuilder.SQL().Select(&stuStruct).GroupBy("username").Having(uidGe100).HavingAnd(uidGe100).Gen()
 	evalAnd()
-	sql, args, err = db.SQL().Select(&stuStruct).GroupBy("username").HavingAnd(uidGe100, uidGe100).Gen()
+	sql, args, err = sqlBuilder.SQL().Select(&stuStruct).GroupBy("username").HavingAnd(uidGe100, uidGe100).Gen()
 	evalAnd()
 
 	evalOr := func() {
@@ -440,8 +439,8 @@ func TestSQLStmt_GroupBy_Having(t *testing.T) {
 		assert.EqualValues(t, []interface{}{uid, uid}, args)
 	}
 
-	sql, args, err = db.SQL().Select(&stuStruct).GroupBy("username").Having(uidGe100).HavingOr(uidGe100).Gen()
+	sql, args, err = sqlBuilder.SQL().Select(&stuStruct).GroupBy("username").Having(uidGe100).HavingOr(uidGe100).Gen()
 	evalOr()
-	sql, args, err = db.SQL().Select(&stuStruct).GroupBy("username").HavingOr(uidGe100, uidGe100).Gen()
+	sql, args, err = sqlBuilder.SQL().Select(&stuStruct).GroupBy("username").HavingOr(uidGe100, uidGe100).Gen()
 	evalOr()
 }

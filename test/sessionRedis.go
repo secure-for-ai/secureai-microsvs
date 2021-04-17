@@ -4,7 +4,8 @@ import (
 	"fmt"
 	"github.com/gorilla/sessions"
 	"github.com/secure-for-ai/secureai-microsvs/cache"
-	"github.com/secure-for-ai/secureai-microsvs/db"
+	"github.com/secure-for-ai/secureai-microsvs/db/mongodb"
+	"github.com/secure-for-ai/secureai-microsvs/db/pgdb"
 	"github.com/secure-for-ai/secureai-microsvs/session"
 	"net/http"
 )
@@ -40,7 +41,7 @@ var (
 		IDGenerator: session.SUIDInt64Generator{},
 	}
 
-	mongoConf = db.MongoDBConf{
+	mongoConf = mongodb.Config{
 		Host:        "localhost",
 		Port:        "27017",
 		DBName:      "gtest",
@@ -49,7 +50,7 @@ var (
 		AdminDBName: "admin",
 	}
 
-	mongoClient, _  = db.NewMongoDB(mongoConf)
+	mongoClient, _  = mongodb.NewMongoDB(mongoConf)
 	redisMongoStore = session.RedisMongoStoreEngine{
 		RedisClient:   sessRedisClient,
 		MongoDBClient: mongoClient,
@@ -60,7 +61,7 @@ var (
 		CacheAge:      10,
 	}
 
-	pgConf = db.PGPoolConf{
+	pgConf = pgdb.PGPoolConf{
 		Host:   "localhost",
 		Port:   "7000",
 		DBName: "test",
@@ -68,7 +69,7 @@ var (
 		PW:     "password",
 	}
 
-	pgClient, _  = db.NewPGClient(pgConf)
+	pgClient, _  = pgdb.NewPGClient(pgConf)
 	redisPGStore = session.RedisPGStoreEngine{
 		RedisClient: sessRedisClient,
 		PGClient:    pgClient,

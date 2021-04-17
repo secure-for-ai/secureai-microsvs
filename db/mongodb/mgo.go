@@ -1,4 +1,4 @@
-package db
+package mongodb
 
 import (
 	"context"
@@ -10,7 +10,7 @@ import (
 	"time"
 )
 
-type MongoDBConf struct {
+type Config struct {
 	Host        string `json:"Host"`
 	Port        string `json:"Port"`
 	DBName      string `json:"DBName"`
@@ -19,13 +19,13 @@ type MongoDBConf struct {
 	AdminDBName string `json:"AdminDBName"`
 }
 
-func (c MongoDBConf) GetMongoURI() string {
+func (c Config) GetMongoURI() string {
 	mongoURI := fmt.Sprintf("mongodb://%s:%s@%s:%s/%s?retryWrites=false&replSet=rs0&connect=direct",
 		c.User, c.PW, c.Host, c.Port, c.AdminDBName)
 	return mongoURI
 }
 
-type MongoDBClient struct {
+type Client struct {
 	client   *mongo.Client
 	database *mongo.Database
 }
@@ -34,8 +34,8 @@ type MongoDBClient struct {
 	session *mongo.Session
 }*/
 
-func NewMongoDB(conf MongoDBConf) (client *MongoDBClient, err error) {
-	client = &MongoDBClient{}
+func NewMongoDB(conf Config) (client *Client, err error) {
+	client = &Client{}
 	ctx, cancel := context.WithTimeout(context.Background(), 20*time.Second)
 	defer cancel()
 	clientOption := options.Client().ApplyURI(conf.GetMongoURI()) //"mongodb://test:password@127.0.0.1:27017/admin")
@@ -61,12 +61,12 @@ func NewMongoDB(conf MongoDBConf) (client *MongoDBClient, err error) {
 	return client, err
 }
 
-func (c *MongoDBClient) Copy(ref *MongoDBClient) {
+func (c *Client) Copy(ref *Client) {
 	c.client = ref.client
 	c.database = ref.database
 }
 
-func (c *MongoDBClient) Disconnect() {
+func (c *Client) Disconnect() {
 	err := c.client.Disconnect(context.TODO())
 
 	if err != nil {
@@ -75,36 +75,36 @@ func (c *MongoDBClient) Disconnect() {
 	fmt.Println("Connection to MongoDBClient closed.")
 }
 
-func (c *MongoDBClient) GetClient() *mongo.Client {
+func (c *Client) GetClient() *mongo.Client {
 	return c.client
 }
 
-func (c *MongoDBClient) UseDatabase(name string, opts ...*options.DatabaseOptions) *mongo.Database {
+func (c *Client) UseDatabase(name string, opts ...*options.DatabaseOptions) *mongo.Database {
 	c.database = c.client.Database(name, opts...)
 	return c.database
 }
 
-func (c *MongoDBClient) GetCurDatabase() *mongo.Database {
+func (c *Client) GetCurDatabase() *mongo.Database {
 	return c.database
 }
 
-func (c *MongoDBClient) GetDatabaseByName(name string, opts ...*options.DatabaseOptions) *mongo.Database {
+func (c *Client) GetDatabaseByName(name string, opts ...*options.DatabaseOptions) *mongo.Database {
 	return c.client.Database(name, opts...)
 }
 
-func (c *MongoDBClient) GetTable(name string, opts ...*options.CollectionOptions) *mongo.Collection {
+func (c *Client) GetTable(name string, opts ...*options.CollectionOptions) *mongo.Collection {
 	return c.database.Collection(name, opts...)
 }
 
-func (c *MongoDBClient) Ping(ctx context.Context, rp *readpref.ReadPref) error {
+func (c *Client) Ping(ctx context.Context, rp *readpref.ReadPref) error {
 	return c.client.Ping(ctx, rp)
 }
 
-func (c *MongoDBClient) StartSession() (mongo.Session, error) {
+func (c *Client) StartSession() (mongo.Session, error) {
 	return c.client.StartSession()
 }
 
-func (c *MongoDBClient) WithTransaction(
+func (c *Client) WithTransaction(
 	fn func(sessCtx mongo.SessionContext) (interface{}, error)) (result interface{}, err error) {
 	var session mongo.Session
 	var ctx = context.Background()
@@ -134,25 +134,25 @@ func (c *MongoDBClient) WithTransaction(
 	return result, err
 }
 
-func (c *MongoDBClient) InsertOne(ctx context.Context, tableName string, document interface{},
+func (c *Client) InsertOne(ctx context.Context, tableName string, document interface{},
 	opts ...*options.InsertOneOptions) (*mongo.InsertOneResult, error) {
 	table := c.GetTable(tableName)
 	return table.InsertOne(ctx, document, opts...)
 }
 
-func (c *MongoDBClient) UpdateOne(ctx context.Context, tableName string, filter, update interface{},
+func (c *Client) UpdateOne(ctx context.Context, tableName string, filter, update interface{},
 	opts ...*options.UpdateOptions) (*mongo.UpdateResult, error) {
 	table := c.GetTable(tableName)
 	return table.UpdateOne(ctx, filter, update, opts...)
 }
 
-func (c *MongoDBClient) FindOne(ctx context.Context, tableName string, filter, result interface{},
+func (c *Client) FindOne(ctx context.Context, tableName string, filter, result interface{},
 	opts ...*options.FindOneOptions) error {
 	table := c.GetTable(tableName)
 	return table.FindOne(ctx, filter, opts...).Decode(result)
 }
 
-func (c *MongoDBClient) DeleteOne(ctx context.Context, tableName string, filter interface{},
+func (c *Client) DeleteOne(ctx context.Context, tableName string, filter interface{},
 	opts ...*options.DeleteOptions) (*mongo.DeleteResult, error) {
 	table := c.GetTable(tableName)
 	return table.DeleteOne(ctx, filter, opts...)

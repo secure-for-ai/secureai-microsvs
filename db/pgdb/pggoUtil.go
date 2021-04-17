@@ -1,9 +1,10 @@
-package db
+package pgdb
 
 import (
 	"errors"
 	"github.com/jackc/pgproto3/v2"
 	"github.com/jackc/pgx/v4"
+	"github.com/secure-for-ai/secureai-microsvs/db"
 	"reflect"
 )
 
@@ -52,7 +53,7 @@ func getFieldMap(t reflect.Type, rowFields []pgproto3.FieldDescription) []int {
 	tRowFieldMap := make([]int, len(rowFields))
 	for i := 0; i < tNumField; i++ {
 		_field := t.Field(i)
-		_tag := _field.Tag.Get(SQLTag)
+		_tag := _field.Tag.Get(db.Tag)
 		if _tag != "" {
 			tFieldNameIndexMap[_tag] = i
 		} else {

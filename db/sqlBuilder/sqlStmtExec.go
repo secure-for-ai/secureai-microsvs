@@ -1,4 +1,4 @@
-package db
+package sqlBuilder
 
 import (
 	"context"
@@ -6,13 +6,15 @@ import (
 	"encoding/hex"
 	"errors"
 	"github.com/jackc/pgx/v4"
+	"github.com/secure-for-ai/secureai-microsvs/db"
+	"github.com/secure-for-ai/secureai-microsvs/db/pgdb"
 	"github.com/secure-for-ai/secureai-microsvs/util"
 	"reflect"
 )
 
-func (stmt *SQLStmt) ExecPG(tx PGQuerier, ctx context.Context, result ...interface{}) (int64, error) {
-	sql, args, err := stmt.Gen(SQLPOSTGRES)
-	//fmt.Println(sql)
+func (stmt *Stmt) ExecPG(tx pgdb.PGQuerier, ctx context.Context, result ...interface{}) (int64, error) {
+	sql, args, err := stmt.Gen(db.SchPG)
+	//fmt.Println(sqlBuilder)
 
 	// there is an error in query generation.
 	if err != nil {
@@ -20,7 +22,7 @@ func (stmt *SQLStmt) ExecPG(tx PGQuerier, ctx context.Context, result ...interfa
 	}
 
 	switch stmt.sqlType {
-	case SQLInsert:
+	case InsertType:
 		// Insert Select or Insert one record
 		if len(stmt.tableFrom) > 0 || len(stmt.InsertValues) == 1 {
 			return tx.ExecRowsAffected(ctx, sql, args...)
@@ -64,17 +66,17 @@ func (stmt *SQLStmt) ExecPG(tx PGQuerier, ctx context.Context, result ...interfa
 			errs = append(errs, err)
 		}
 
-		// deallocate prepared sql
+		// deallocate prepared sqlBuilder
 		_ = tx.Deallocate(ctx, sqlName)
 
 		if len(errs) == 0 {
 			return affectedRows, nil
 		}
 		return affectedRows, errs
-	case SQLDelete, SQLUpdate:
+	case DeleteType, UpdateType:
 		return tx.ExecRowsAffected(ctx, sql, args...)
 		//err = stmt.updateWriteTo(w)
-	case SQLSelect:
+	case SelectType:
 		//err = stmt.selectWriteTo(w)
 		rows, err := tx.Query(ctx, sql, args...)
 
@@ -93,7 +95,7 @@ func (stmt *SQLStmt) ExecPG(tx PGQuerier, ctx context.Context, result ...interfa
 
 		switch resValue.Kind() {
 		case reflect.Struct:
-			err = StructScanOne(rows, result[0])
+			err = pgdb.StructScanOne(rows, result[0])
 		case reflect.Slice:
 			// if the data type of result[0] is a slice, then pre-allocate
 			// the memory up to stmt.LimitN slots in case of resValue.Cap() < stmt.LimitN
@@ -103,16 +105,16 @@ func (stmt *SQLStmt) ExecPG(tx PGQuerier, ctx context.Context, result ...interfa
 
 			// handle map scan
 			if maps, ok := res.(*[]map[string]interface{}); ok {
-				err = PGMapScan(rows, maps)
+				err = pgdb.PGMapScan(rows, maps)
 				goto RowClose
 			}
 
 			// handle array scan
 			if arr, ok := res.(*[][]interface{}); ok {
-				err = PGArrayScan(rows, arr)
+				err = pgdb.PGArrayScan(rows, arr)
 				goto RowClose
 			}
-			err = StructScanSlice(rows, result[0])
+			err = pgdb.StructScanSlice(rows, result[0])
 		default:
 			err = errors.New("not support result data type: " + reflect.TypeOf(result[0]).String())
 			rows.Close()

@@ -1,30 +1,31 @@
-package db
+package sqlBuilder
 
 import (
 	"bytes"
 	"fmt"
+	"github.com/secure-for-ai/secureai-microsvs/db"
 	"strings"
 )
 
-func (stmt *SQLStmt) Gen(schema ...SQLSchema) (string, []interface{}, error) {
+func (stmt *Stmt) Gen(schema ...db.Schema) (string, []interface{}, error) {
 	var err error
 	w := NewWriter()
 
 	switch stmt.sqlType {
-	case SQLInsert:
+	case InsertType:
 		err = stmt.insertWriteTo(w)
-	case SQLDelete:
+	case DeleteType:
 		err = stmt.deleteWriteTo(w)
-	case SQLUpdate:
+	case UpdateType:
 		err = stmt.updateWriteTo(w)
-	case SQLSelect:
+	case SelectType:
 		err = stmt.selectWriteTo(w)
 	}
 
 	sql := w.String()
 	var index, i int
 
-	index = strings.Index(sql, SQLPara)
+	index = strings.Index(sql, db.Para)
 
 	// nothing need to be replaced
 	if index < 0 {
@@ -36,7 +37,7 @@ func (stmt *SQLStmt) Gen(schema ...SQLSchema) (string, []interface{}, error) {
 	w.Grow(len(sql))
 
 	start := 0
-	sepLen := len(SQLPara)
+	sepLen := len(db.Para)
 
 	pgFunc := func() {
 		fmt.Fprintf(w, "%s$%d", sql[start:start+index], i+1)
@@ -50,9 +51,9 @@ func (stmt *SQLStmt) Gen(schema ...SQLSchema) (string, []interface{}, error) {
 
 	if len(schema) > 0 {
 		switch schema[0] {
-		case SQLPOSTGRES:
+		case db.SchPG:
 			callback = pgFunc
-		case SQLMYSQL:
+		case db.SchMYSQL:
 			w.Grow(len(sql) - len(w.args))
 		}
 	}
@@ -64,27 +65,27 @@ func (stmt *SQLStmt) Gen(schema ...SQLSchema) (string, []interface{}, error) {
 		}
 		callback()
 		start = start + index + sepLen
-		index = strings.Index(sql[start:], SQLPara)
+		index = strings.Index(sql[start:], db.Para)
 	}
 
 	return w.String(), w.args, err
 }
 
-func (stmt *SQLStmt) WriteTo(w Writer) error {
+func (stmt *Stmt) WriteTo(w Writer) error {
 	switch stmt.sqlType {
-	case SQLInsert:
+	case InsertType:
 		return stmt.insertWriteTo(w)
-	case SQLDelete:
+	case DeleteType:
 		return stmt.deleteWriteTo(w)
-	case SQLUpdate:
+	case UpdateType:
 		return stmt.updateWriteTo(w)
-	case SQLSelect:
+	case SelectType:
 		return stmt.selectWriteTo(w)
 	}
 	return ErrNotSupportType
 }
 
-func (stmt *SQLStmt) insertSelectWriteTo(w Writer) error {
+func (stmt *Stmt) insertSelectWriteTo(w Writer) error {
 	if _, err := fmt.Fprintf(w, "INSERT INTO %s ", stmt.tableInto); err != nil {
 		return err
 	}
@@ -102,7 +103,7 @@ func (stmt *SQLStmt) insertSelectWriteTo(w Writer) error {
 	return stmt.selectWriteTo(w)
 }
 
-func (stmt *SQLStmt) insertWriteTo(w Writer) error {
+func (stmt *Stmt) insertWriteTo(w Writer) error {
 	if len(stmt.tableInto) <= 0 {
 		return ErrNoTableName
 	}
@@ -154,7 +155,7 @@ func (stmt *SQLStmt) insertWriteTo(w Writer) error {
 					return err
 				}
 			} else {
-				if _, err := fmt.Fprint(valBuf, SQLPara); err != nil {
+				if _, err := fmt.Fprint(valBuf, db.Para); err != nil {
 					return err
 				}
 				args = append(args, value)
@@ -200,7 +201,7 @@ func (stmt *SQLStmt) insertWriteTo(w Writer) error {
 	return nil
 }
 
-func (stmt *SQLStmt) deleteWriteTo(w Writer) error {
+func (stmt *Stmt) deleteWriteTo(w Writer) error {
 	if len(stmt.tableFrom) <= 0 {
 		return ErrNoTableName
 	}
@@ -223,7 +224,7 @@ func (stmt *SQLStmt) deleteWriteTo(w Writer) error {
 	return nil
 }
 
-func (stmt *SQLStmt) updateWriteTo(w Writer) error {
+func (stmt *Stmt) updateWriteTo(w Writer) error {
 	if len(stmt.tableFrom) <= 0 {
 		return ErrNoTableName
 	}
@@ -254,7 +255,7 @@ func (stmt *SQLStmt) updateWriteTo(w Writer) error {
 	return nil
 }
 
-func (stmt *SQLStmt) selectWriteTo(w Writer) error {
+func (stmt *Stmt) selectWriteTo(w Writer) error {
 	if len(stmt.tableFrom) <= 0 {
 		return ErrNoTableName
 	}

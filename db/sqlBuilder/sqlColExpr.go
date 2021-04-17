@@ -1,4 +1,4 @@
-package db
+package sqlBuilder
 
 import "fmt"
 
@@ -48,7 +48,7 @@ func (exprs *colParams) writeNameArgs(w Writer) error {
 		}
 
 		switch arg := exprs.Args[i].(type) {
-		case *SQLStmt:
+		case *Stmt:
 			if _, err := fmt.Fprint(w, "("); err != nil {
 				return err
 			}

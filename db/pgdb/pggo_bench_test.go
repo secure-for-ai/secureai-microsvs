@@ -1,8 +1,8 @@
-package db_test
+package pgdb_test
 
 import (
 	"context"
-	"github.com/secure-for-ai/secureai-microsvs/db"
+	"github.com/secure-for-ai/secureai-microsvs/db/sqlBuilder"
 	"github.com/secure-for-ai/secureai-microsvs/snowflake"
 	"github.com/secure-for-ai/secureai-microsvs/util"
 	"github.com/stretchr/testify/assert"
@@ -66,7 +66,7 @@ func benchmarkInsert(b *testing.B, pageLen int) {
 					ts.Unix(),
 					ts.Unix(),
 				}
-				affectedRow, err := db.Insert(&exStu).ExecPG(conn, ctx)
+				affectedRow, err := sqlBuilder.Insert(&exStu).ExecPG(conn, ctx)
 				assert.NoError(b, err)
 				assert.EqualValues(b, 1, affectedRow)
 			}
@@ -123,7 +123,7 @@ func benchmarkInsertBulk(b *testing.B, pageLen int) {
 				}
 			}
 
-			affectedRow, err := db.InsertBulk(&stus).ExecPG(conn, ctx)
+			affectedRow, err := sqlBuilder.InsertBulk(&stus).ExecPG(conn, ctx)
 			assert.NoError(b, err)
 			assert.EqualValues(b, pageLen, affectedRow)
 		}
@@ -156,7 +156,7 @@ func BenchmarkSelectOne(b *testing.B) {
 		stu := student{}
 		uid := int64(10000)
 		for pb.Next() {
-			_, _ = db.Select(&stu).Where("uid > ??", uid).
+			_, _ = sqlBuilder.Select(&stu).Where("uid > ??", uid).
 				OrderBy("uid").Limit(1, 0).ExecPG(conn, ctx, &stu)
 			uid = stu.Uid
 		}
@@ -183,7 +183,7 @@ func benchmarkSelectPage(b *testing.B, pageLen int) {
 		var stus []student
 		uid := int64(10000)
 		for pb.Next() {
-			_, _ = db.Select(&stu).Where("uid > ??", uid).
+			_, _ = sqlBuilder.Select(&stu).Where("uid > ??", uid).
 				OrderBy("uid").Limit(pageLen, 0).ExecPG(conn, ctx, &stus)
 			uid = stus[len(stus)-1].Uid
 			stus = nil
@@ -216,7 +216,7 @@ func benchmarkUpdate(b *testing.B, pageLen int) {
 		var stus []student
 		uid := int64(10000)
 		for pb.Next() {
-			_, _ = db.Select(&stu).Where("uid > ??", uid).
+			_, _ = sqlBuilder.Select(&stu).Where("uid > ??", uid).
 				OrderBy("uid").Limit(pageLen, rand.Int()%32).ExecPG(conn, ctx, &stus)
 
 			for i := 0; i < pageLen; i++ {
@@ -224,7 +224,7 @@ func benchmarkUpdate(b *testing.B, pageLen int) {
 				stus[i].Username = util.Base64Encode(uname)
 				stus[i].UpdateTime = time.Now().Unix()
 
-				affectedRow, err := db.Update(&stus[i]).Where(db.Map{"uid": stus[i].Uid}).ExecPG(conn, ctx)
+				affectedRow, err := sqlBuilder.Update(&stus[i]).Where(sqlBuilder.Map{"uid": stus[i].Uid}).ExecPG(conn, ctx)
 				assert.NoError(b, err)
 				assert.EqualValues(b, 1, affectedRow)
 			}
@@ -261,9 +261,9 @@ func BenchmarkDelete(b *testing.B) {
 		stu := student{}
 		uid := int64(10000)
 		for pb.Next() {
-			_, _ = db.Select(&stu).Where("uid > ??", uid).
+			_, _ = sqlBuilder.Select(&stu).Where("uid > ??", uid).
 				OrderBy("uid").Limit(1, rand.Int()%32).ExecPG(conn, ctx, &stu)
-			_, _ = db.Delete(&stu).Where(db.Map{"uid": uid}).ExecPG(conn, ctx)
+			_, _ = sqlBuilder.Delete(&stu).Where(sqlBuilder.Map{"uid": uid}).ExecPG(conn, ctx)
 			uid = stu.Uid
 		}
 	})
@@ -307,7 +307,7 @@ func benchmarkTxInsert(b *testing.B, pageLen int) {
 					ts.Unix(),
 					ts.Unix(),
 				}
-				affectedRow, err := db.Insert(&exStu).ExecPG(tx, ctx)
+				affectedRow, err := sqlBuilder.Insert(&exStu).ExecPG(tx, ctx)
 				assert.NoError(b, err)
 				assert.EqualValues(b, 1, affectedRow)
 			}
@@ -344,9 +344,8 @@ func benchmarkTxUpdate(b *testing.B, pageLen int) {
 			if err != nil {
 				panic("cannot start tx")
 			}
-			defer tx.RollBackDefer(ctx)
 
-			_, _ = db.Select(&stu).Where("uid > ??", uid).
+			_, _ = sqlBuilder.Select(&stu).Where("uid > ??", uid).
 				OrderBy("uid").Limit(pageLen, rand.Int()%32).ExecPG(tx, ctx, &stus)
 
 			for i := 0; i < pageLen; i++ {
@@ -354,7 +353,7 @@ func benchmarkTxUpdate(b *testing.B, pageLen int) {
 				stus[i].Username = util.Base64Encode(uname)
 				stus[i].UpdateTime = time.Now().Unix()
 
-				affectedRow, err := db.Update(&stus[i]).Where(db.Map{"uid": stus[i].Uid}).ExecPG(tx, ctx)
+				affectedRow, err := sqlBuilder.Update(&stus[i]).Where(sqlBuilder.Map{"uid": stus[i].Uid}).ExecPG(tx, ctx)
 				assert.NoError(b, err)
 				assert.EqualValues(b, 1, affectedRow)
 			}
