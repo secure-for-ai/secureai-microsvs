@@ -5,28 +5,25 @@ import (
 	"time"
 )
 
-func GetJWTToken(data map[string]interface{}, secret string, expire time.Duration) (token string) {
-	t := jwt.New(jwt.SigningMethodHS256)
+func GetJWTToken(data jwt.MapClaims, secret string, expire time.Duration) (token string) {
+	t := jwt.NewWithClaims(jwt.SigningMethodHS256, data)
 	claims := t.Claims.(jwt.MapClaims)
-	for key, value := range data {
-		claims[key] = value
-	}
 	claims["exp"] = time.Now().Add(expire).Unix()
 	token, _ = t.SignedString([]byte(secret))
 	return
 }
 
-func ValidateJWT(authScheme, token, secret string) (jwt.MapClaims, bool) {
-	if len(token) < len(authScheme)+1 || authScheme != token[:len(authScheme)] {
-		return nil, false
-	}
-	t, _ := jwt.Parse(token[len(authScheme)+1:], func(jwtToken *jwt.Token) (interface{}, error) {
+func ValidateJWT(token, secret string) (jwt.MapClaims, bool) {
+	t, _ := jwt.Parse(token, func(jwtToken *jwt.Token) (interface{}, error) {
 		return []byte(secret), nil
 	})
 
 	claims, ok := t.Claims.(jwt.MapClaims)
 	if !ok {
 		return nil, t.Valid
+	}
+	if exp, ok := claims["exp"].(float64); ok {
+		claims["exp"] = int64(exp)
 	}
 	return claims, t.Valid
 }
