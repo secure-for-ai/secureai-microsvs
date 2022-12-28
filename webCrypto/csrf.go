@@ -1,11 +1,11 @@
 package webCrypto
 
 import (
-	"crypto"
 	"crypto/hmac"
 	"encoding/binary"
 	"errors"
 	"github.com/secure-for-ai/secureai-microsvs/util"
+	"hash"
 	"strconv"
 	"strings"
 	"time"
@@ -42,7 +42,7 @@ func (c *aesGcmCSRF) GetToken(session string, expire time.Duration) (string, err
 	timestamp := time.Now().Add(expire).Unix()
 	binary.LittleEndian.PutUint64(plaintext, uint64(timestamp))
 	copy(plaintext[8:], session)
-	token, err := c.cipher.EncryptBase64(plaintext)
+	token, err := c.cipher.EncryptBase64ToString(plaintext)
 	if err != nil {
 		return "", ErrCSRFTokenInvalid
 	}
@@ -50,7 +50,7 @@ func (c *aesGcmCSRF) GetToken(session string, expire time.Duration) (string, err
 }
 
 func (c *aesGcmCSRF) ValidToken(session, token string) bool {
-	plaintext, err := c.cipher.DecryptBase64(token)
+	plaintext, err := c.cipher.DecryptBase64ToString(token)
 	if err != nil {
 		return false
 	}
@@ -71,11 +71,11 @@ func (c *aesGcmCSRF) ValidToken(session, token string) bool {
 
 // HMAC based CSRF
 type hmacCSRF struct {
-	hash crypto.Hash
+	hash func() hash.Hash
 	key  []byte
 }
 
-var ErrHmacCSRFNotAvailable = errors.New("webCrypto/csrf this HMAC CSRF algorithm is not available")
+// var ErrHmacCSRFNotAvailable = errors.New("webCrypto/csrf this HMAC CSRF algorithm is not available")
 
 type ErrHmacCSRFKeySize int
 
@@ -83,15 +83,15 @@ func (k ErrHmacCSRFKeySize) Error() string {
 	return "webCrypto/csrf: invalid hmac key size " + strconv.Itoa(int(k))
 }
 
-func NewHmacCSRF(hash crypto.Hash, key interface{}) (CSRF, error) {
-	if !hash.Available() {
-		return nil, ErrHmacCSRFNotAvailable
-	}
+func NewHmacCSRF(hash func() hash.Hash, key interface{}) (CSRF, error) {
+	//if !hash.Available() {
+	//	return nil, ErrHmacCSRFNotAvailable
+	//}
 
 	var keyBin []byte
 	switch v := key.(type) {
 	case string:
-		k, err := util.Base64Decode(v)
+		k, err := util.Base64DecodeString(v)
 		if err != nil {
 			return nil, ErrCipherKey
 		}
@@ -104,7 +104,7 @@ func NewHmacCSRF(hash crypto.Hash, key interface{}) (CSRF, error) {
 
 	// check key length, at least hash output size
 	keyLen := len(keyBin)
-	if keyLen < hash.Size() {
+	if keyLen < hash().Size() {
 		return nil, ErrHmacCSRFKeySize(keyLen)
 	}
 
@@ -117,7 +117,7 @@ func NewHmacCSRF(hash crypto.Hash, key interface{}) (CSRF, error) {
 
 func (c *hmacCSRF) GetToken(session string, expire time.Duration) (string, error) {
 	// generate the nonce of token
-	mac := hmac.New(c.hash.New, c.key)
+	mac := hmac.New(c.hash, c.key) // sha256simd
 	macSize := mac.Size()
 	nonce, err := util.GenerateRandomKey(macSize)
 	if err != nil {
@@ -135,7 +135,7 @@ func (c *hmacCSRF) GetToken(session string, expire time.Duration) (string, error
 	mac.Write([]byte(session))
 
 	tokenMAC := mac.Sum(nil)
-	token := util.Base64Encode(plaintext) + "." + util.Base64Encode(tokenMAC)
+	token := util.Base64EncodeToString(plaintext) + "." + util.Base64EncodeToString(tokenMAC)
 	return token, nil
 }
 
@@ -146,16 +146,16 @@ func (c *hmacCSRF) ValidToken(session, token string) bool {
 		return false
 	}
 	// base64 validation
-	plaintext, err := util.Base64Decode(tokenArr[0])
+	plaintext, err := util.Base64DecodeString(tokenArr[0])
 	if err != nil {
 		return false
 	}
-	tokenMAC, err := util.Base64Decode(tokenArr[1])
+	tokenMAC, err := util.Base64DecodeString(tokenArr[1])
 	if err != nil {
 		return false
 	}
 
-	mac := hmac.New(c.hash.New, c.key)
+	mac := hmac.New(c.hash, c.key)
 	macSize := mac.Size()
 	// invalid plaintext length
 	if len(plaintext) != macSize+8 {

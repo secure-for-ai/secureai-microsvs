@@ -1,6 +1,7 @@
 package webCrypto_test
 
 import (
+	"bytes"
 	"github.com/secure-for-ai/secureai-microsvs/util"
 	"github.com/secure-for-ai/secureai-microsvs/webCrypto"
 	"github.com/stretchr/testify/assert"
@@ -9,16 +10,17 @@ import (
 
 func TestCipherBase64(t *testing.T) {
 	key, _ := util.GenerateRandomKey(32)
-	cipher, err := webCrypto.NewAesGcm(util.Base64Encode(key))
+	cipher, err := webCrypto.NewAesGcm(util.Base64EncodeToString(key))
 	assert.NoError(t, err)
 
 	t.Log("==============Test Encryption Base64===========")
 	plainText := []byte("hello world")
 	t.Log("PlainText:", string(plainText))
-	cipherText, err := cipher.EncryptBase64(plainText)
+	cipherText, err := cipher.EncryptBase64ToString(plainText)
 	assert.NoError(t, err)
 	t.Log("CipherText:", cipherText)
-	decryptText, err := cipher.DecryptBase64(cipherText)
+	decryptText, err := cipher.DecryptBase64ToString(cipherText)
+	assert.NoError(t, err)
 	t.Log("DecryptText:", string(decryptText))
 
 	assert.Equal(t, plainText, decryptText)
@@ -26,7 +28,7 @@ func TestCipherBase64(t *testing.T) {
 
 func TestCipherByte(t *testing.T) {
 	key, _ := util.GenerateRandomKey(32)
-	cipher, err := webCrypto.NewAesGcm(util.Base64Encode(key))
+	cipher, err := webCrypto.NewAesGcm(util.Base64EncodeToString(key))
 	assert.NoError(t, err)
 
 	t.Log("===============Test Encryption Byte============")
@@ -36,6 +38,7 @@ func TestCipherByte(t *testing.T) {
 	assert.NoError(t, err)
 	t.Log("CipherText:", cipherText)
 	decryptText, err := cipher.DecryptByte(cipherText)
+	assert.NoError(t, err)
 	t.Log("DecryptText:", string(decryptText))
 
 	assert.Equal(t, plainText, decryptText)
@@ -43,18 +46,21 @@ func TestCipherByte(t *testing.T) {
 
 func benchmarkCipherByte(b *testing.B, keyLen, n int) {
 	key, _ := util.GenerateRandomKey(keyLen)
-	cipher, err := webCrypto.NewAesGcm(util.Base64Encode(key))
+	cipher, err := webCrypto.NewAesGcm(util.Base64EncodeToString(key))
 	assert.NoError(b, err)
 
 	b.ReportAllocs()
 	b.ResetTimer()
 	b.SetBytes(int64(n))
+
 	b.RunParallel(func(pb *testing.PB) {
 		plainText, _ := util.GenerateRandomKey(n)
 		for pb.Next() {
 			cipherText, _ := cipher.EncryptByte(plainText)
 			decrypted, _ := cipher.DecryptByte(cipherText)
-			assert.Equal(b, plainText, decrypted)
+			if !bytes.Equal(plainText, decrypted) {
+				assert.Equal(b, plainText, decrypted)
+			}
 		}
 	})
 }
@@ -82,18 +88,21 @@ func BenchmarkCipherByte256_65536(b *testing.B) { benchmarkCipherByte(b, 32, 655
 
 func benchmarkCipherBase64(b *testing.B, keyLen, n int) {
 	key, _ := util.GenerateRandomKey(keyLen)
-	cipher, err := webCrypto.NewAesGcm(util.Base64Encode(key))
+	cipher, err := webCrypto.NewAesGcm(util.Base64EncodeToString(key))
 	assert.NoError(b, err)
 
 	b.ReportAllocs()
 	b.ResetTimer()
 	b.SetBytes(int64(n))
+
 	b.RunParallel(func(pb *testing.PB) {
 		plainText, _ := util.GenerateRandomKey(n)
 		for pb.Next() {
-			cipherText, _ := cipher.EncryptBase64(plainText)
-			decrypted, _ := cipher.DecryptBase64(cipherText)
-			assert.Equal(b, plainText, decrypted)
+			cipherText, _ := cipher.EncryptBase64ToString(plainText)
+			decrypted, _ := cipher.DecryptBase64ToString(cipherText)
+			if !bytes.Equal(plainText, decrypted) {
+				assert.Equal(b, plainText, decrypted)
+			}
 		}
 	})
 }

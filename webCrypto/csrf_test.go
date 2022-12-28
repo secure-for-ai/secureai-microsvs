@@ -1,7 +1,7 @@
 package webCrypto_test
 
 import (
-	"crypto"
+	"github.com/minio/sha256-simd"
 	"github.com/secure-for-ai/secureai-microsvs/util"
 	"github.com/secure-for-ai/secureai-microsvs/webCrypto"
 	"github.com/stretchr/testify/assert"
@@ -14,12 +14,13 @@ func TestNewAesGcmCSRF(t *testing.T) {
 	key, _ := util.GenerateRandomKey(32)
 	csrf, err := webCrypto.NewAesGcmCSRF(key)
 	sessionInfoBin, _ := util.GenerateRandomKey(100)
-	sessionInfo := util.Base64Encode(sessionInfoBin)
+	sessionInfo := util.Base64EncodeToString(sessionInfoBin)
 	expire := 60 * 15 * time.Second
 	assert.NoError(t, err)
 
 	t.Log("==============Test AES_GCM CSRF Valid Token===========")
 	token, err := csrf.GetToken(sessionInfo, expire)
+	assert.NoError(t, err)
 	t.Log("session:", sessionInfo)
 	t.Log("expired:", expire)
 	t.Log("token:", token)
@@ -28,6 +29,7 @@ func TestNewAesGcmCSRF(t *testing.T) {
 
 	t.Log("==============Test AES_GCM CSRF Token Expiring on Time===========")
 	token, err = csrf.GetToken(sessionInfo, 0)
+	assert.NoError(t, err)
 	t.Log("session:", sessionInfo)
 	t.Log("expired:", 0)
 	t.Log("token:", token)
@@ -36,6 +38,7 @@ func TestNewAesGcmCSRF(t *testing.T) {
 
 	t.Log("==============Test AES_GCM CSRF Expired Token===========")
 	token, err = csrf.GetToken(sessionInfo, -expire)
+	assert.NoError(t, err)
 	t.Log("session:", sessionInfo)
 	t.Log("expired:", -expire)
 	t.Log("token:", token)
@@ -45,14 +48,15 @@ func TestNewAesGcmCSRF(t *testing.T) {
 
 func TestNewHmacCSRF(t *testing.T) {
 	key, _ := util.GenerateRandomKey(32)
-	csrf, err := webCrypto.NewHmacCSRF(crypto.SHA256, key)
+	csrf, err := webCrypto.NewHmacCSRF(sha256.New, key)
 	sessionInfoBin, _ := util.GenerateRandomKey(100)
-	sessionInfo := util.Base64Encode(sessionInfoBin)
+	sessionInfo := util.Base64EncodeToString(sessionInfoBin)
 	expire := 60 * 15 * time.Second
 	assert.NoError(t, err)
 
 	t.Log("==============Test HMAC CSRF Valid Token===========")
 	token, err := csrf.GetToken(sessionInfo, expire)
+	assert.NoError(t, err)
 	t.Log("session:", sessionInfo)
 	t.Log("expired:", expire)
 	t.Log("token:", token)
@@ -61,6 +65,7 @@ func TestNewHmacCSRF(t *testing.T) {
 
 	t.Log("==============Test HMAC CSRF Token Expiring on Time===========")
 	token, err = csrf.GetToken(sessionInfo, 0)
+	assert.NoError(t, err)
 	t.Log("session:", sessionInfo)
 	t.Log("expired:", 0)
 	t.Log("token:", token)
@@ -69,6 +74,7 @@ func TestNewHmacCSRF(t *testing.T) {
 
 	t.Log("==============Test HMAC CSRF Expired Token===========")
 	token, err = csrf.GetToken(sessionInfo, -expire)
+	assert.NoError(t, err)
 	t.Log("session:", sessionInfo)
 	t.Log("expired:", -expire)
 	t.Log("token:", token)
@@ -80,7 +86,7 @@ func benchmarkNewAesGcmCSRF(b *testing.B, keyLen, msgLen int) {
 	key, _ := util.GenerateRandomKey(keyLen)
 	csrf, err := webCrypto.NewAesGcmCSRF(key)
 	sessionInfoBin, _ := util.GenerateRandomKey(msgLen)
-	sessionInfo := util.Base64Encode(sessionInfoBin)
+	sessionInfo := util.Base64EncodeToString(sessionInfoBin)
 	assert.NoError(b, err)
 
 	b.ReportAllocs()
@@ -119,9 +125,9 @@ func BenchmarkNewAes256GcmCSRF_65336(b *testing.B) { benchmarkNewAesGcmCSRF(b, 3
 
 func benchmarkNewHmacCSRF(b *testing.B, keyLen, msgLen int) {
 	key, _ := util.GenerateRandomKey(keyLen)
-	csrf, err := webCrypto.NewHmacCSRF(crypto.SHA256, key)
-	sessionInfoBin, _ := util.GenerateRandomKey(msgLen) // "sample_session"
-	sessionInfo := util.Base64Encode(sessionInfoBin)    // "sample_session"
+	csrf, err := webCrypto.NewHmacCSRF(sha256.New, key)
+	sessionInfoBin, _ := util.GenerateRandomKey(msgLen)      // "sample_session"
+	sessionInfo := util.Base64EncodeToString(sessionInfoBin) // "sample_session"
 	assert.NoError(b, err)
 
 	b.ReportAllocs()
