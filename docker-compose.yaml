@@ -1,46 +1,62 @@
-version: '3'
+version: '3.9'
 
 services:
-  demo-api-pg:
-    #build: ./
-    image: golang:1.15
-    volumes:
-      - ./src:/go/src/
-    working_dir: /go/src/
-    ports:
-      - "6552:6552"
-    depends_on:
-      - redis
-      - mongo
-      - postgres
-    environment:
-      - GOPROXY=https://goproxy.cn
-      - ENV=prod
-    container_name: secureai-dev-demo-api-pg
-    entrypoint: go run demo_pg/main.go
-  demo-api-mongo:
-    #build: ./
-    image: golang:1.15
-    volumes:
-      - ./src:/go/src/
-    working_dir: /go/src/
-    ports:
-      - "6551:6551"
-    depends_on:
-      - redis
-      - mongo
-      - postgres
-    environment:
-      - GOPROXY=https://goproxy.cn
-      - ENV=prod
-    container_name: secureai-dev-demo-api-mongo
-    entrypoint: go run demo_mongo/main.go
+  dev:
+      build: 
+        context: .
+        dockerfile: dockerfile
+      # ports:
+      #   - "8000:8000"
+      #   - "12345:12345"
+      #   - "40000:40000"
+  #    expose:
+  #      - "8000"
+  #      - "12345"
+  #      - "40000"
+      volumes:
+        - .:/app
+      working_dir: /app/
+      command: sleep infinity 
+  # demo-api-pg:
+  #   #build: ./
+  #   image: dockerfile
+  #   volumes:
+  #     - ./src:/go/src/
+  #   working_dir: /go/src/
+  #   ports:
+  #     - "6552:6552"
+  #   depends_on:
+  #     - redis
+  #     - mongo
+  #     - postgres
+  #   environment:
+  #     - GOPROXY=https://goproxy.cn
+  #     - ENV=prod
+  #   container_name: secureai-dev-demo-api-pg
+  #   entrypoint: go run demo_pg/main.go
+  # demo-api-mongo:
+  #   #build: ./
+  #   image: Dockerfile
+  #   volumes:
+  #     - ./src:/go/src/
+  #   working_dir: /go/src/
+  #   ports:
+  #     - "6551:6551"
+  #   depends_on:
+  #     - redis
+  #     - mongo
+  #     - postgres
+  #   environment:
+  #     - GOPROXY=https://goproxy.cn
+  #     - ENV=prod
+  #   container_name: secureai-dev-demo-api-mongo
+  #   entrypoint: go run demo_mongo/main.go
   postgres:
     image: postgres:13
     ports:
       - "7000:5432"
     volumes:
-      - ./data/postgres_13:/var/lib/postgresql/data
+      - ./_data/postgres_13:/var/lib/postgresql/data
       - ./pg-init.sql:/docker-entrypoint-initdb.d/init.sql
     environment:
       - POSTGRES_PASSWORD=password
@@ -52,7 +68,7 @@ services:
     ports:
       - "27017:27017"
     volumes:
-      - ./data/mongo:/data/db
+      - ./_data/mongo:/data/db
       # - ./mongod.conf:/etc/mongod.conf
       - ./replica-init.js:/docker-entrypoint-initdb.d/replica-init.js
     environment:
@@ -69,7 +85,7 @@ services:
     environment:
       - RedisPass=password
     volumes:
-      - ./data/redis:/data
+      - ./_data/redis:/data
       - ./redis.conf:/usr/local/etc/redis/redis.conf
     command: [ "redis-server", "/usr/local/etc/redis/redis.conf" ]
     container_name: secureai-dev-redis
@@ -80,6 +96,6 @@ services:
     volumes:
       - ./build:/usr/share/nginx/html
       - ./nginx.conf:/etc/nginx/conf.d/default.conf
-    links:
-      - demo-api-mongo:demo-api-mongo
+    # links:
+    #   - demo-api-mongo:demo-api-mongo
     container_name: secureai-dev-nginx
