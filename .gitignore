@@ -1,6 +1,6 @@
+*.bak
 build.log
 trace.log
-*.test
 .devcontainer/
 _data/
 
