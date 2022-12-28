@@ -11,31 +11,60 @@ import (
 	"reflect"
 	"strings"
 	"time"
+	"unsafe"
 )
 
 func GetNowTimestamp() int64 {
 	return time.Now().Unix()
 }
 
-func GenerateRandomKey(length int) ([]byte, error) {
-	b := make([]byte, length)
-	_, err := rand.Read(b)
-	if err != nil {
-		return nil, err
-	}
-	return b, nil
+func GenerateRandomKey(len int) (dst []byte, err error) {
+	dst = make([]byte, len)
+	err = GenerateRandomKeyToBuf(dst, len)
+	return
 }
+
+func GenerateRandomKeyToBuf(dst []byte, len int) error {
+	_, err := rand.Read(dst[0:len])
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
 
 // use ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_
 // no padding
-func Base64Encode(b []byte) string {
+func Base64EncodeToString(b []byte) string {
 	return base64.RawURLEncoding.EncodeToString(b)
 }
 
 // use ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_
 // no padding
-func Base64Decode(s string) ([]byte, error) {
+func Base64DecodeString(s string) ([]byte, error) {
 	return base64.RawURLEncoding.DecodeString(s)
+}
+
+// use ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_
+// no padding
+func Base64Encode(dst []byte, src []byte) {
+	base64.RawURLEncoding.Encode(dst, src)
+}
+
+// use ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_
+// no padding
+func Base64Decode(dst, src []byte) (int, error) {
+	return base64.RawURLEncoding.Decode(dst, src)
+}
+
+func FastStringToBytes(s string) []byte {
+    return (*[0x7fff0000]byte)(unsafe.Pointer(
+        (*reflect.StringHeader)(unsafe.Pointer(&s)).Data),
+    )[:len(s):len(s)]
+}
+
+func FastBytesToString(b []byte) string {
+	return *(*string)(unsafe.Pointer(&b))
 }
 
 func GetIP(req *http.Request) (ip net.IP) {
