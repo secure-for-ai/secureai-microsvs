@@ -18,9 +18,9 @@ func randStuSize() int {
 	email, _ := util.GenerateRandomKey(15)
 	exStu := student{
 		0,
-		util.Base64Encode(username),
-		util.Base64Encode(nickname),
-		util.Base64Encode(email) + "ali@gmail.com",
+		util.Base64EncodeToString(username),
+		util.Base64EncodeToString(nickname),
+		util.Base64EncodeToString(email) + "ali@gmail.com",
 		ts.Unix(),
 		ts.Unix(),
 	}
@@ -60,9 +60,9 @@ func benchmarkInsert(b *testing.B, pageLen int) {
 				email, _ := util.GenerateRandomKey(15)
 				exStu := student{
 					node.Generate().Int64(),
-					util.Base64Encode(username),
-					util.Base64Encode(nickname),
-					util.Base64Encode(email) + "@gmail.com",
+					util.Base64EncodeToString(username),
+					util.Base64EncodeToString(nickname),
+					util.Base64EncodeToString(email) + "@gmail.com",
 					ts.Unix(),
 					ts.Unix(),
 				}
@@ -115,9 +115,9 @@ func benchmarkInsertBulk(b *testing.B, pageLen int) {
 				email, _ := util.GenerateRandomKey(15)
 				stus[i] = student{
 					node.Generate().Int64(),
-					util.Base64Encode(username),
-					util.Base64Encode(nickname),
-					util.Base64Encode(email) + "@gmail.com",
+					util.Base64EncodeToString(username),
+					util.Base64EncodeToString(nickname),
+					util.Base64EncodeToString(email) + "@gmail.com",
 					ts.Unix(),
 					ts.Unix(),
 				}
@@ -221,7 +221,7 @@ func benchmarkUpdate(b *testing.B, pageLen int) {
 
 			for i := 0; i < pageLen; i++ {
 				uname, _ := util.GenerateRandomKey(15)
-				stus[i].Username = util.Base64Encode(uname)
+				stus[i].Username = util.Base64EncodeToString(uname)
 				stus[i].UpdateTime = time.Now().Unix()
 
 				affectedRow, err := sqlBuilder.Update(&stus[i]).Where(sqlBuilder.Map{"uid": stus[i].Uid}).ExecPG(conn, ctx)
@@ -301,9 +301,9 @@ func benchmarkTxInsert(b *testing.B, pageLen int) {
 				email, _ := util.GenerateRandomKey(15)
 				exStu := student{
 					node.Generate().Int64(),
-					util.Base64Encode(username),
-					util.Base64Encode(nickname),
-					util.Base64Encode(email) + "@gmail.com",
+					util.Base64EncodeToString(username),
+					util.Base64EncodeToString(nickname),
+					util.Base64EncodeToString(email) + "@gmail.com",
 					ts.Unix(),
 					ts.Unix(),
 				}
@@ -350,7 +350,7 @@ func benchmarkTxUpdate(b *testing.B, pageLen int) {
 
 			for i := 0; i < pageLen; i++ {
 				uname, _ := util.GenerateRandomKey(15)
-				stus[i].Username = util.Base64Encode(uname)
+				stus[i].Username = util.Base64EncodeToString(uname)
 				stus[i].UpdateTime = time.Now().Unix()
 
 				affectedRow, err := sqlBuilder.Update(&stus[i]).Where(sqlBuilder.Map{"uid": stus[i].Uid}).ExecPG(tx, ctx)
