@@ -25,8 +25,8 @@ import (
 //
 //func (r Base64IDGenerator) newSessID(sess *sessions.Session) string {
 //	b, _ := util.GenerateRandomKey(r.Length)
-//	id := util.Base64Encode(b)
-//	sess.Values["sid"] = util.Base64Encode(b)
+//	id := util.Base64EncodeToString(b)
+//	sess.Values["sid"] = util.Base64EncodeToString(b)
 //	return id
 //}
 //
@@ -64,7 +64,7 @@ type SessIDGenerator interface {
 //
 //func (r SUIDStrGenerator) encodeSessID(sess *sessions.Session) []byte {
 //	return []byte(sess.Values["sid"].(string) + "|" + sess.Values["uid"].(string) +
-//		"|" + util.Base64Encode(sess.Values["nonce"].([]byte)))
+//		"|" + util.Base64EncodeToString(sess.Values["nonce"].([]byte)))
 //}
 //
 //func (r SUIDStrGenerator) decodeSessID(sess *sessions.Session, data []byte) error {
@@ -74,7 +74,7 @@ type SessIDGenerator interface {
 //	}
 //	sess.Values["sid"] = strs[0]
 //	sess.Values["uid"] = strs[1]
-//	nonce, err := util.Base64Decode(strs[2])
+//	nonce, err := util.Base64DecodeString(strs[2])
 //	if err != nil {
 //		return err
 //	}

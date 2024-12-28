@@ -54,11 +54,11 @@ func (h AesGcmCookieHandler) Encode(sess *sessions.Session, store *HybridStore) 
 	copy(output, iv)
 	copy(output[12:], cipherText)
 
-	return util.Base64Encode(output), nil
+	return util.Base64EncodeToString(output), nil
 }
 
 func (h AesGcmCookieHandler) Decode(c *http.Cookie, sess *sessions.Session, store *HybridStore) error {
-	ciperText, err := util.Base64Decode(c.Value)
+	ciperText, err := util.Base64DecodeString(c.Value)
 
 	if err != nil {
 		// Todo add logger

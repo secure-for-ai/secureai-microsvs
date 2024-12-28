@@ -100,7 +100,7 @@ func (id Base64ID) Generate(length int) (string, error) {
 		return "", err
 	}
 
-	return util.Base64Encode(b), nil
+	return util.Base64EncodeToString(b), nil
 }
 
 // CookieHandler provides an interface hook for alternative encode/decode cookie value
@@ -189,7 +189,7 @@ func NewSessionStore(storage StoreEngine, conf *HybridStoreConf) *HybridStore {
 		// initial keyPairs
 		keyPairs := make([][]byte, len(conf.KeyPairs))
 		for i, v := range conf.KeyPairs {
-			if keyPairs[i], err = util.Base64Decode(v); err != nil {
+			if keyPairs[i], err = util.Base64DecodeString(v); err != nil {
 				panic("Error: loading Invalid key for secure cookie handler.")
 			}
 		}
@@ -206,7 +206,7 @@ func NewSessionStore(storage StoreEngine, conf *HybridStoreConf) *HybridStore {
 			Codecs: codecs,
 		}
 	case "aes_gcm":
-		encKey, err := util.Base64Decode(conf.KeyPairs[0])
+		encKey, err := util.Base64DecodeString(conf.KeyPairs[0])
 		if err != nil {
 			panic("Error: loading Invalid key for aes_gcm cookie handler.")
 		}
