@@ -32,7 +32,6 @@ func GenerateRandomKeyToBuf(dst []byte, len int) error {
 	return nil
 }
 
-
 // use ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_
 // no padding
 func Base64EncodeToString(b []byte) string {
@@ -58,9 +57,7 @@ func Base64Decode(dst, src []byte) (int, error) {
 }
 
 func FastStringToBytes(s string) []byte {
-    return (*[0x7fff0000]byte)(unsafe.Pointer(
-        (*reflect.StringHeader)(unsafe.Pointer(&s)).Data),
-    )[:len(s):len(s)]
+	return unsafe.Slice(unsafe.StringData(s), len(s))
 }
 
 func FastBytesToString(b []byte) string {
