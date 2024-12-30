@@ -3,17 +3,21 @@ package pgdb
 import (
 	"context"
 	"fmt"
-	"github.com/jackc/pgconn"
-	"github.com/jackc/pgtype/pgxtype"
-	"github.com/jackc/pgx/v4"
+	"github.com/jackc/pgx/v5/pgconn"
+	// "github.com/jackc/pgtype/pgxtype"
+	"github.com/jackc/pgx/v5"
 	"log"
 
 	//"github.com/jackc/pgx/v4/log/log15adapter"
-	"github.com/jackc/pgx/v4/pgxpool"
+	"github.com/jackc/pgx/v5/pgxpool"
 )
 
 type PGQuerier interface {
-	pgxtype.Querier
+	// pgxtype.Querier
+	Exec(ctx context.Context, sql string, arguments ...interface{}) (pgconn.CommandTag, error)
+	Query(ctx context.Context, sql string, optionsAndArgs ...interface{}) (pgx.Rows, error)
+	QueryRow(ctx context.Context, sql string, optionsAndArgs ...interface{}) pgx.Row
+
 	Prepare(ctx context.Context, name string, sql string) (sd *pgconn.StatementDescription, err error)
 	ExecRowsAffected(ctx context.Context, sql string, args ...interface{}) (int64, error)
 	SendBatch(ctx context.Context, b *pgx.Batch) pgx.BatchResults
@@ -52,7 +56,7 @@ func NewPGClient(conf PGPoolConf) (client *PGClient, err error) {
 	}
 	//config.Logger = log15adapter.NewLogger(log.New("module", "pgx"))
 
-	_client, err := pgxpool.ConnectConfig(context.Background(), config)
+	_client, err := pgxpool.NewWithConfig(context.Background(), config)
 	if err != nil {
 		return nil, err
 	}

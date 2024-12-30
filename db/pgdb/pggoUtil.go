@@ -2,15 +2,16 @@ package pgdb
 
 import (
 	"errors"
-	"github.com/jackc/pgproto3/v2"
-	"github.com/jackc/pgx/v4"
+	// "github.com/jackc/pgproto3/v2"
+	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/secure-for-ai/secureai-microsvs/db"
 	"reflect"
 )
 
 var ErrFindNil = errors.New("pg: row not found")
 
-func getFieldMap(t reflect.Type, rowFields []pgproto3.FieldDescription) []int {
+func getFieldMap(t reflect.Type, rowFields []pgconn.FieldDescription) []int {
 	tNumField := t.NumField()
 	// map the field name to field index for a struct
 	// Suppose we have struct
