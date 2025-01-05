@@ -45,11 +45,25 @@ type fromItem interface {
 	aliasName() string
 	setAliasName(string)
 	writeTo(*Writer)
+	destroy()
+}
+
+var fromTablePool = sync.Pool{
+	New: func() interface{} {
+		return new(fromTable)
+	},
 }
 
 type fromTable struct {
 	tableName string
 	alias     string
+}
+
+func createFromTable(tableName string, alias string) fromItem {
+	from := fromTablePool.Get().(*fromTable)
+	from.tableName = tableName
+	from.alias = alias
+	return from
 }
 
 func (from *fromTable) itemName() string {
@@ -72,9 +86,26 @@ func (from *fromTable) writeTo(w *Writer) {
 	}
 }
 
+func (from *fromTable) destroy() {
+	fromTablePool.Put(from)
+}
+
+var fromStmtPool = sync.Pool{
+	New: func() interface{} {
+		return new(fromStmt)
+	},
+}
+
 type fromStmt struct {
 	stmt  *Stmt
 	alias string
+}
+
+func createFromStmt(stmt *Stmt, alias string) fromItem {
+	from := fromStmtPool.Get().(*fromStmt)
+	from.stmt = stmt
+	from.alias = alias
+	return from
 }
 
 func (from *fromStmt) itemName() string {
@@ -101,6 +132,11 @@ func (from *fromStmt) writeTo(w *Writer) {
 	}
 }
 
+func (from *fromStmt) destroy() {
+	from.stmt.Destroy()
+	fromStmtPool.Put(from)
+}
+
 type Stmt struct {
 	RefTable *Table
 
@@ -117,7 +153,7 @@ type Stmt struct {
 	LimitN int
 
 	InsertCols   []string
-	InsertValues [][]condExpr
+	InsertValues condExpr2DList
 	//isInsertBulk bool
 
 	SetCols colParams
@@ -126,6 +162,7 @@ type Stmt struct {
 
 	sqlType      Type
 	insertSelect *Stmt
+	rawData    []interface{}
 }
 
 func Insert(data ...interface{}) *Stmt {
@@ -176,7 +213,7 @@ func (stmt *Stmt) Init() {
 	stmt.LimitN = 0
 
 	stmt.InsertCols = []string{}
-	stmt.InsertValues = [][]condExpr{}
+	stmt.InsertValues = newCondExpr2DList(2)
 	//stmt.isInsertBulk = false
 	stmt.SetCols = colParams{}
 	stmt.SelectCols = []string{}
@@ -189,11 +226,15 @@ func (stmt *Stmt) Reset() {
 	stmt.RefTable = nil
 
 	stmt.tableInto = ""
+	for _, from := range stmt.tableFrom {
+		from.destroy()
+	}
 	stmt.tableFrom = stmt.tableFrom[:0]
 
-	// stmt.where.Destroy()
+	stmt.where.Destroy()
 	stmt.where = condEmpty{}
 	stmt.GroupByStr.Reset()
+	stmt.having.Destroy()
 	stmt.having = condEmpty{}
 	stmt.OrderByStr.Reset()
 
@@ -201,7 +242,7 @@ func (stmt *Stmt) Reset() {
 	stmt.LimitN = 0
 
 	stmt.InsertCols = stmt.InsertCols[:0]
-	stmt.InsertValues = stmt.InsertValues[:0]
+	stmt.InsertValues.reset()
 	stmt.SetCols = colParams{}
 	stmt.SelectCols = stmt.SelectCols[:0]
 
@@ -287,19 +328,39 @@ func buildColumns(colNames *[]string, column interface{}) {
 	}
 }
 
-func buildValues(curData interface{}) []condExpr {
+func buildValues(curData interface{}) *condExprList {
 	v := util.ReflectValue(curData)
 	vType := v.Type()
 	if vType.Kind() == reflect.Struct {
-
 		numField := v.NumField()
-		values := make([]condExpr, numField)
+		values := getCondExprListWithSize(numField) //make([]condExpr, numField)
 		for i, il := 0, numField; i < il; i++ {
 			// Get value
-			var val interface{}
 			fieldValue := v.Field(i)
-			val = fieldValue.Interface()
-			values[i].Set(db.Para, val)
+			// values.SetIth(i, db.Para, fieldValue.Interface())
+			switch fieldValue.Kind() {
+			default:
+				values.SetIth(i, db.Para, fieldValue.Interface())
+			case reflect.Bool:
+				values.SetIth(i, db.Para, fieldValue.Bool())	
+			case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
+				// args := getArgsWithSize(1)
+				// *args = append(*args, fieldValue.Int())
+				values.SetIth(i, db.Para, fieldValue.Int())
+				// argsPool.Put(args)
+			case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
+				values.SetIth(i, db.Para, fieldValue.Uint())
+			case reflect.Float32, reflect.Float64:
+				values.SetIth(i, db.Para, fieldValue.Float())
+			case reflect.Complex64, reflect.Complex128:
+				values.SetIth(i, db.Para, fieldValue.Complex())
+			case reflect.String:
+				values.SetIth(i, db.Para, fieldValue.String())
+			}
+			
+			// (*values)[i].sql = db.Para
+			// (*values)[i].args[0] = val
+
 		}
 		return values
 	}
@@ -344,41 +405,42 @@ func (stmt *Stmt) Values(data ...interface{}) *Stmt {
 		//if len(stmt.InsertValues) >= 1 {
 		//	stmt.isInsertBulk = true
 		//}
+		stmt.InsertValues.grow(1)
 		curData := data[0]
 		switch curData := curData.(type) {
 		case []interface{}:
-			values := make([]condExpr, len(curData))
-			for i, el := range curData {
-				if e, ok := el.(condExpr); ok {
-					values[i] = e
+			InsertValues := getCondExprListWithSize(len(curData)) //make([]condExpr, len(curData))
+			for i, val := range curData {
+				if e, ok := val.(condExpr); ok {
+					InsertValues.SetIthWithExpr(i, &e)
 				} else {
-					values[i].Set(db.Para, e)
+					InsertValues.SetIth(i, db.Para, val)//[i].Set(db.Para, val)
 				}
 			}
-			stmt.InsertValues = append(stmt.InsertValues, values)
+			stmt.InsertValues.append(InsertValues)
 		case Map:
-			InsertCols := make([]string, 0, len(curData))
-			InsertValues := make([]condExpr, len(curData))
+			insertCols := make([]string, 0, len(curData))
+			insertValues := getCondExprListWithSize(len(curData)) //make([]condExpr, len(curData))
 			for i, col := range curData.sortedKeys() {
-				InsertCols = append(InsertCols, col)
+				insertCols = append(insertCols, col)
 				val := curData[col]
 				if e, ok := val.(condExpr); ok {
-					InsertValues[i] = e
+					insertValues.SetIthWithExpr(i, &e)
 				} else {
-					InsertValues[i].Set(db.Para, val)
+					insertValues.SetIth(i, db.Para, val)//[i].Set(db.Para, val)
 				}
 			}
-			stmt.InsertCols = InsertCols
-			stmt.InsertValues = append(stmt.InsertValues, InsertValues)
+			stmt.InsertCols = insertCols
+			stmt.InsertValues.append(insertValues)
 		case *Stmt:
 			stmt.insertSelect = curData
 		default:
 			if len(stmt.InsertCols) == 0 {
 				buildColumns(&stmt.InsertCols, curData)
 			}
-			values := buildValues(curData)
-			if values != nil {
-				stmt.InsertValues = append(stmt.InsertValues, values)
+			insertValues := buildValues(curData)
+			if insertValues != nil {
+				stmt.InsertValues.append(insertValues)
 			}
 		}
 	default:
@@ -423,41 +485,42 @@ func (stmt *Stmt) valuesBulkInternal(data *reflect.Value) *Stmt {
 	}
 
 	// loading the data
-	InsertValues := make([][]condExpr, 0, dataLen)
+	// InsertValues := make([][]condExpr, 0, dataLen)
+	stmt.InsertValues.grow(dataLen)
 	for i := 0; i < dataLen; i++ {
 		curData := data.Index(i).Interface()
 		switch curData := curData.(type) {
 		case []interface{}:
-			values := make([]condExpr, len(curData))
-			for j, el := range curData {
-				if e, ok := el.(condExpr); ok {
-					values[j] = e
+			insertValues := getCondExprListWithSize(len(curData)) //make([]condExpr, len(curData))
+			for j, val := range curData {
+				if e, ok := val.(condExpr); ok {
+					insertValues.SetIthWithExpr(j, &e)
 				} else {
-					values[j].Set(db.Para, e)
+					insertValues.SetIth(j, db.Para, val)
 				}
 			}
-			InsertValues = append(InsertValues, values)
+			stmt.InsertValues.append(insertValues)
 		case Map:
-			values := make([]condExpr, len(curData))
+			insertValues := getCondExprListWithSize(len(curData)) //make([]condExpr, len(curData))
 			for j, col := range stmt.InsertCols {
 				val := curData[col]
 				if e, ok := val.(condExpr); ok {
-					values[j] = e
+					insertValues.SetIthWithExpr(j, &e)
 				} else {
-					values[j].Set(db.Para, val)
+					insertValues.SetIth(j, db.Para, val)
 				}
 			}
-			InsertValues = append(InsertValues, values)
+			stmt.InsertValues.append(insertValues)
 		case *Stmt:
 			stmt.insertSelect = curData
 		default:
-			values := buildValues(curData)
-			if values != nil {
-				InsertValues = append(InsertValues, values)
+			insertValues := buildValues(curData)
+			if insertValues != nil {
+				stmt.InsertValues.append(insertValues)
 			}
 		}
 	}
-	stmt.InsertValues = append(stmt.InsertValues, InsertValues...)
+	// stmt.InsertValues = append(stmt.InsertValues, InsertValues...)
 
 	return stmt
 }
@@ -486,20 +549,11 @@ func (stmt *Stmt) From(subject interface{}, alias ...string) *Stmt {
 	switch subject := subject.(type) {
 	case *Stmt:
 		//subquery should be a select statement
-		from = &fromStmt{
-			subject,
-			"",
-		}
+		from = createFromStmt(subject, "")
 	case Table:
-		from = &fromTable{
-			subject.GetTableName(),
-			"",
-		}
+		from = createFromTable(subject.GetTableName(), "")
 	case string:
-		from = &fromTable{
-			subject,
-			"",
-		}
+		from = createFromTable(subject, "")
 	default:
 		return stmt
 	}
@@ -514,6 +568,10 @@ func (stmt *Stmt) From(subject interface{}, alias ...string) *Stmt {
 
 // Insert SQL
 func (stmt *Stmt) Insert(data ...interface{}) *Stmt {
+	// stmt.rawData = stmt.rawData[:0]
+	// stmt.rawData = append(stmt.rawData, data...)
+	// data = stmt.rawData
+
 	switch len(data) {
 	case 0:
 		break
@@ -751,22 +809,27 @@ func (stmt *Stmt) catCond(c Cond, OpFunc func(cond ...Cond) Cond, query interfac
 		cond := Expr(query, args...)
 		c = OpFunc(c, cond)
 	case Map:
-		conds := make([]Cond, 0, len(query)+1)
-		conds = append(conds, c)
+		//
+		conds := condAndPool.Get().(*condAnd) //make([]Cond, 0, len(query)+1)
+		*conds = append(*conds, c)
 		for _, k := range query.sortedKeys() {
-			conds = append(conds, Expr(k+" = "+db.Para, query[k]))
+			*conds = append(*conds, Expr(k+" = "+db.Para, query[k]))
 		}
-		c = OpFunc(conds...)
+		c = OpFunc(*conds...)
+		*conds = (*conds)[:0]
+		condAndPool.Put(conds)
 	case Cond:
-		conds := make([]Cond, 0, len(args)+2)
-		conds = append(conds, c)
-		conds = append(conds, query)
+		conds := condAndPool.Get().(*condAnd) //make([]Cond, 0, len(args)+2)
+		*conds = append(*conds, c)
+		*conds = append(*conds, query)
 		for _, v := range args {
 			if vv, ok := v.(Cond); ok {
-				conds = append(conds, vv)
+				*conds = append(*conds, vv)
 			}
 		}
-		c = OpFunc(conds...)
+		c = OpFunc(*conds...)
+		*conds = (*conds)[:0]
+		condAndPool.Put(conds)
 	default:
 		// TODO: not support condition type
 	}

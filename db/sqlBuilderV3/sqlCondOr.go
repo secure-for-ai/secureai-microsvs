@@ -118,6 +118,16 @@ func (or *condOr) IsValid() bool {
 
 func (or *condOr) Reset() {
 	if len(*or) > 0 {
+		// Recursively destroy the condition
+		for _, cond := range *or {
+			cond.Destroy()
+		}
+		*or = (*or)[:0]
+	}
+}
+
+func (or *condOr) ResetSimple() {
+	if len(*or) > 0 {
 		// we don't destroy cond recursively, as underlying cond can be
 		// used by other sql as well. No need to worry about the dirty data
 		// in the array as it is just a reference and will be overwritten

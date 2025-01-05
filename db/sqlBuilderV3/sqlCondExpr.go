@@ -26,7 +26,9 @@ func Expr(sql string, args ...interface{}) Cond {
 
 func (expr *condExpr) Set(sql string, args ...interface{}) {
 	expr.sql = sql
-	expr.args = args
+	// expr.args = args
+	// expr.args = expr.args[:0]
+	expr.args = append(expr.args[:0], args...)
 }
 
 func (expr *condExpr) WriteTo(w *Writer) {
@@ -55,7 +57,7 @@ func (expr *condExpr) IsValid() bool {
 
 func (expr *condExpr) Reset() {
 	expr.sql = ""
-	expr.args = nil
+	expr.args = expr.args[:0]
 }
 
 func (expr *condExpr) Destroy() {
