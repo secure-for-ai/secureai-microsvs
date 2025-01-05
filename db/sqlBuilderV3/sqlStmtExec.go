@@ -7,7 +7,7 @@ import (
 	"errors"
 
 	// "github.com/goccy/go-reflect"
-	"github.com/jackc/pgx/v4"
+	"github.com/jackc/pgx/v5"
 	"github.com/secure-for-ai/secureai-microsvs/db"
 	"github.com/secure-for-ai/secureai-microsvs/db/pgdb"
 	"github.com/secure-for-ai/secureai-microsvs/util"
