@@ -16,6 +16,7 @@ import (
 
 func (stmt *Stmt) ExecPG(tx pgdb.PGQuerier, ctx context.Context, result ...interface{}) (int64, error) {
 	w := NewWriter()
+	defer w.Destroy()
 	sql, args, err := stmt.Gen(w, db.SchPG)
 	//fmt.Println(sqlBuilder)
 
@@ -45,9 +46,10 @@ func (stmt *Stmt) ExecPG(tx pgdb.PGQuerier, ctx context.Context, result ...inter
 
 		batch := &pgx.Batch{}
 
-		rows := len(args)
-		for _, arg := range args {
-			batch.Queue(sqlName, arg.([]interface{})...)
+		bulkArgs := w.BulkArgs()
+		rows := len(bulkArgs)
+		for _, args := range bulkArgs {
+			batch.Queue(sqlName, *args...)
 		}
 
 		br := tx.SendBatch(context.Background(), batch)

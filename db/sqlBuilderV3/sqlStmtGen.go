@@ -3,34 +3,9 @@ package sqlBuilderV3
 import (
 	"strconv"
 	"strings"
-	"sync"
 
 	"github.com/secure-for-ai/secureai-microsvs/db"
 )
-
-var argsPool = sync.Pool{
-	New: func() interface{} {
-		args := make([]interface{}, 0, 4)
-		return &args
-	},
-}
-
-func getArgsWithSize(n int) *[]interface{} {
-	args := argsPool.Get().(*[]interface{})
-	*args = (*args)[:0]
-	// if n <= cap(*args) {
-	// 	*args = (*args)[:0]
-	// } else {
-	// 	c := n
-	// 	if c < 2*cap(*args) {
-	// 		c = 2 * cap(*args)
-	// 	}
-	// 	args2 := append([]interface{}(nil), make([]interface{}, c)...)
-	// 	copy(args2, *args)
-	// 	*args = args2[:0]
-	// }
-	return args
-}
 
 func (stmt *Stmt) Gen(w *Writer, schema ...db.Schema) (string, []interface{}, error) {
 	var err error
@@ -119,7 +94,7 @@ func (stmt *Stmt) insertSelectWriteTo(w *Writer) error {
 
 	if len(stmt.InsertCols) > 0 {
 		w.WriteString(" (")
-		writerJoin(w, stmt.InsertCols, ',')
+		w.Join(stmt.InsertCols, ',')
 		w.WriteString(") ")
 	} else {
 		w.WriteByte(' ')
@@ -150,7 +125,7 @@ func (stmt *Stmt) insertWriteTo(w *Writer) error {
 
 	if len(stmt.InsertCols) > 0 {
 		w.WriteString(" (")
-		writerJoin(w, stmt.InsertCols, ',')
+		w.Join(stmt.InsertCols, ',')
 		w.WriteString(") VALUES (")
 	} else {
 		w.WriteString(" VALUES (")
@@ -159,35 +134,39 @@ func (stmt *Stmt) insertWriteTo(w *Writer) error {
 	switch rowsLen := len(stmt.InsertValues); rowsLen {
 	case 0:
 		return ErrNoValueToInsert
-	default:
+	case 1:
 		values := stmt.InsertValues[0]
 		valuesLen := len(*values)
-		args := getArgsWithSize(valuesLen) //make([]interface{}, 0, valuesLen)
 
 		for i, value := range *values {
 			w.WriteString(value.sql)
-			*args = append(*args, value.args...)
-
+			w.Append(value.args...)
 			if i != valuesLen-1 {
 				w.WriteByte(',')
 			}
 		}
+	default:
+		// write the first row including sql concat
+		values := stmt.InsertValues[0]
+		valuesLen := len(*values)
+		args := getArgs()
 
-		if rowsLen == 1 {
-			// insert one row
-			w.Append(*args...)
-			argsPool.Put(args)
-		} else {
-			// insert multiple row
-			w.Append(*args)
-			// argsPool.Put(args)
-			for _, values := range stmt.InsertValues[1:] {
-				args = getArgsWithSize(valuesLen) //make([]interface{}, 0, valuesLen)
-				for _, value := range *values {
-					*args = append(*args, value.args...)
-				}
-				w.Append(*args)
+		for i, value := range *values {
+			w.WriteString(value.sql)
+			*args = append(*args, value.args...)
+			if i != valuesLen-1 {
+				w.WriteByte(',')
 			}
+		}
+		w.AppendBulk(args)
+
+		// write the rest rows
+		for _, values := range stmt.InsertValues[1:] {
+			args := getArgs() //make([]interface{}, 0, valuesLen)
+			for _, value := range *values {
+				*args = append(*args, value.args...)
+			}
+			w.AppendBulk(args)
 		}
 	}
 
@@ -238,7 +217,7 @@ func (stmt *Stmt) selectWriteTo(w *Writer) error {
 	w.WriteString("SELECT ")
 
 	if len(stmt.SelectCols) > 0 {
-		writerJoin(w, stmt.SelectCols, ',')
+		w.Join(stmt.SelectCols, ',')
 	} else {
 		w.WriteByte('*')
 	}
