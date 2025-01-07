@@ -45,7 +45,7 @@ func (condEmpty) Destroy() {
 
 func CondToSQL(cond Cond, w *Writer) (string, []interface{}, error) {
 	if cond == nil || !cond.IsValid() {
-		return "", nil, nil
+		return "", []interface{}{}, nil
 	}
 
 	w.Reset()

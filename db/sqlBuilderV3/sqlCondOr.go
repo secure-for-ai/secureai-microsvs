@@ -1,6 +1,8 @@
 package sqlBuilderV3
 
-import "sync"
+import (
+	"sync"
+)
 
 type condOr []Cond
 
@@ -30,7 +32,7 @@ func Or(conds ...Cond) Cond {
 	return orInternal(result, conds...)
 }
 
-func OrOne(cond Cond, conds ...Cond) Cond {
+func orOne(cond Cond, conds ...Cond) Cond {
 	// return condEmpty if no cond is passed in
 	length := len(conds)
 	if length == 0 {
@@ -74,7 +76,6 @@ func orInternal(result *condOr, conds ...Cond) Cond {
 	}
 }
 
-// WriteTo implments Cond
 func (or *condOr) WriteTo(w *Writer) {
 	length := len(*or) - 1
 	for i, cond := range *or {
@@ -105,11 +106,11 @@ func (or *condOr) WriteTo(w *Writer) {
 }
 
 func (or *condOr) And(conds ...Cond) Cond {
-	return AndOne(or, conds...)
+	return andOne(or, conds...)
 }
 
 func (or *condOr) Or(conds ...Cond) Cond {
-	return OrOne(or, conds...)
+	return orOne(or, conds...)
 }
 
 func (or *condOr) IsValid() bool {
@@ -118,20 +119,17 @@ func (or *condOr) IsValid() bool {
 
 func (or *condOr) Reset() {
 	if len(*or) > 0 {
-		// Recursively destroy the condition
-		for _, cond := range *or {
-			cond.Destroy()
-		}
-		*or = (*or)[:0]
-	}
-}
-
-func (or *condOr) ResetSimple() {
-	if len(*or) > 0 {
 		// we don't destroy cond recursively, as underlying cond can be
-		// used by other sql as well. No need to worry about the dirty data
-		// in the array as it is just a reference and will be overwritten
-		// next time.
+		// used by other sql as well, which can cause a complex dependence
+		// graph. One can use the set to track destroyed conds. However, it
+		// causes the overhead significantly. In addition, a destroyed cond
+		// may be still referenced by other condition. Then, we have to use
+		// a counter to track the number referencer which further impacts
+		// the performance. Thus, the simplest way is to let user to call 
+		// Destroy() or Reset to free the cond explicitly.
+		//
+		// No need to worry about the dirty data in the array as it is just
+		// a reference and will be overwritten next time.
 		*or = (*or)[:0]
 	}
 }

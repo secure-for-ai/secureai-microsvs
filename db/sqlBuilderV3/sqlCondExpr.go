@@ -14,7 +14,7 @@ var condExprPool = sync.Pool{
 	},
 }
 
-// Expr generate customerize SQL
+// Expr generate customize SQL
 func Expr(sql string, args ...interface{}) Cond {
 	if len(sql) == 0 {
 		return CondEmpty
@@ -44,11 +44,11 @@ func (expr *condExpr) WriteTo(w *Writer) {
 // }
 
 func (expr *condExpr) And(conds ...Cond) (cond Cond) {
-	return AndOne(expr, conds...)
+	return andOne(expr, conds...)
 }
 
 func (expr *condExpr) Or(conds ...Cond) Cond {
-	return OrOne(expr, conds...)
+	return orOne(expr, conds...)
 }
 
 func (expr *condExpr) IsValid() bool {

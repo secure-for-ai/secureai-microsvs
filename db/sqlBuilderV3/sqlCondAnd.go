@@ -33,7 +33,7 @@ func And(conds ...Cond) Cond {
 	return andInternal(result, conds...)
 }
 
-func AndOne(cond Cond, conds ...Cond) Cond {
+func andOne(cond Cond, conds ...Cond) Cond {
 	// return condEmpty if no cond is passed in
 	length := len(conds)
 	if length == 0 {
@@ -108,11 +108,11 @@ func (and *condAnd) WriteTo(w *Writer) {
 }
 
 func (and *condAnd) And(conds ...Cond) Cond {
-	return AndOne(and, conds...)
+	return andOne(and, conds...)
 }
 
 func (and *condAnd) Or(conds ...Cond) Cond {
-	return OrOne(and, conds...)
+	return orOne(and, conds...)
 }
 
 func (and *condAnd) IsValid() bool {
@@ -121,20 +121,17 @@ func (and *condAnd) IsValid() bool {
 
 func (and *condAnd) Reset() {
 	if len(*and) > 0 {
-		// Recursively destroy the condition
-		for _, cond := range *and {
-			cond.Destroy()
-		}
-		*and = (*and)[:0]
-	}
-}
-
-func (and *condAnd) ResetSimple() {
-	if len(*and) > 0 {
 		// we don't destroy cond recursively, as underlying cond can be
-		// used by other sql as well. No need to worry about the dirty data
-		// in the array as it is just a reference and will be overwritten
-		// next time.
+		// used by other sql as well, which can cause a complex dependence
+		// graph. One can use the set to track destroyed conds. However, it
+		// causes the overhead significantly. In addition, a destroyed cond
+		// may be still referenced by other condition. Then, we have to use
+		// a counter to track the number referencer which further impacts
+		// the performance. Thus, the simplest way is to let user to call 
+		// Destroy() or Reset to free the cond explicitly.
+		//
+		// No need to worry about the dirty data in the array as it is just
+		// a reference and will be overwritten next time.
 		*and = (*and)[:0]
 	}
 }
