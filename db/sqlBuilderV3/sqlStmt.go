@@ -1,6 +1,7 @@
 package sqlBuilderV3
 
 import (
+	_ "unsafe"
 	"bytes"
 	"sort"
 	"strings"
@@ -328,6 +329,9 @@ func buildColumns(colNames *[]string, column interface{}) {
 	}
 }
 
+//go:linkname valueInterface reflect.valueInterface
+func valueInterface(v reflect.Value, safe bool) any
+
 func buildValues(curData interface{}) *condExprList {
 	v := util.ReflectValue(curData)
 	vType := v.Type()
@@ -340,7 +344,7 @@ func buildValues(curData interface{}) *condExprList {
 			// values.SetIth(i, db.Para, fieldValue.Interface())
 			switch fieldValue.Kind() {
 			default:
-				values.SetIth(i, db.Para, fieldValue.Interface())
+				values.SetIth(i, db.Para, valueInterface(fieldValue, false))
 			case reflect.Bool:
 				values.SetIth(i, db.Para, fieldValue.Bool())	
 			case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
@@ -552,7 +556,7 @@ func (stmt *Stmt) From(subject interface{}, alias ...string) *Stmt {
 	switch subject := subject.(type) {
 	case *Stmt:
 		//subquery should be a select statement, and we only accept one select stmt
-		stmt.tableFrom = stmt.tableFrom[:0]
+		// stmt.tableFrom = stmt.tableFrom[:0]
 		from = createFromStmt(subject, "")
 	case Table:
 		from = createFromTable(subject.GetTableName(), "")
@@ -760,7 +764,7 @@ func (stmt *Stmt) setStruct(data interface{}) *Stmt {
 			fieldValue := v.Field(i)
 			switch fieldValue.Kind() {
 			default:
-				stmt.SetCols.addParam(colName, Expr(db.Para, fieldValue.Interface()))
+				stmt.SetCols.addParam(colName, Expr(db.Para, valueInterface(fieldValue, false)))
 			case reflect.Bool:
 				stmt.SetCols.addParam(colName, Expr(db.Para, fieldValue.Bool()))
 			case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:

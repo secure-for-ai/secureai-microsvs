@@ -18,7 +18,7 @@ var (
 	// ErrNoValueToInsert no value to insert
 	ErrNoValueToInsert = errors.New("No value(s) to insert")
 	// ErrNotSupportDialectType not supported dialect type error
-	ErrNoColumnToInsert = errors.New("No column(s) to insert")
+	// ErrNoColumnToInsert = errors.New("No column(s) to insert")
 	// ErrNotSupportDialectType not supported dialect type error
 	//ErrNotSupportDialectType = errors.New("Not supported dialect type")
 	// ErrNotUnexpectedUnionConditions using union in a wrong way

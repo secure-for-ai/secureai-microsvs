@@ -115,9 +115,9 @@ func (stmt *Stmt) insertWriteTo(w *Writer) error {
 	if len(stmt.tableInto) <= 0 {
 		return ErrNoTableName
 	}
-	if len(stmt.InsertCols) <= 0 && len(stmt.tableFrom) == 0 {
-		return ErrNoColumnToInsert
-	}
+	// if len(stmt.InsertCols) <= 0 && stmt.tableInto == "" && len(stmt.tableFrom) == 0 {
+	// 	return ErrNoColumnToInsert
+	// }
 
 	// Insert Select
 	if stmt.tableInto != "" && len(stmt.tableFrom) > 0 {
