@@ -39,7 +39,12 @@ func (exprList *condExprList) SetIth(i int, sql string, args ...interface{}) {
 }
 
 func (exprList *condExprList) SetIthWithExpr(i int, expr *condExpr) {
-	(*exprList)[i] = *expr
+	// we deep-copy the memory rather than do (*exprList)[i] = *expr.
+	// If we do so, (*exprList)[i].args is indeed expr.args. Then, when we
+	// return *exprList to the sync pool, the slice (*exprList)[i].args may be
+	// still used by other objects. This can mess up the memory management and
+	// cause segmentation faults.
+	(*exprList)[i].Set(expr.sql, expr.args...)
 }
 
 type condExpr2DList []*condExprList

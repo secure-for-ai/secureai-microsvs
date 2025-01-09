@@ -100,9 +100,13 @@ func (stmt *Stmt) insertSelectWriteTo(w *Writer) error {
 		w.WriteByte(' ')
 	}
 
-	if stmt.insertSelect != nil {
-		return stmt.insertSelect.selectWriteTo(w)
+	if s, ok := stmt.tableFrom[0].(*fromStmt); ok {
+		s.writeTo(w)
+		return nil
 	}
+	// if stmt.insertSelect != nil {
+	// 	return stmt.insertSelect.selectWriteTo(w)
+	// }
 
 	return stmt.selectWriteTo(w)
 }

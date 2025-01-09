@@ -41,8 +41,8 @@ type Table interface {
 }
 
 type fromItem interface {
-	itemName() string
-	aliasName() string
+	// itemName() string
+	// aliasName() string
 	setAliasName(string)
 	writeTo(*Writer)
 	destroy()
@@ -66,13 +66,13 @@ func createFromTable(tableName string, alias string) fromItem {
 	return from
 }
 
-func (from *fromTable) itemName() string {
-	return from.tableName
-}
+// func (from *fromTable) itemName() string {
+// 	return from.tableName
+// }
 
-func (from *fromTable) aliasName() string {
-	return from.alias
-}
+// func (from *fromTable) aliasName() string {
+// 	return from.alias
+// }
 
 func (from *fromTable) setAliasName(name string) {
 	from.alias = name
@@ -108,13 +108,13 @@ func createFromStmt(stmt *Stmt, alias string) fromItem {
 	return from
 }
 
-func (from *fromStmt) itemName() string {
-	return from.alias
-}
+// func (from *fromStmt) itemName() string {
+// 	return from.alias
+// }
 
-func (from *fromStmt) aliasName() string {
-	return from.alias
-}
+// func (from *fromStmt) aliasName() string {
+// 	return from.alias
+// }
 
 func (from *fromStmt) setAliasName(name string) {
 	from.alias = name
@@ -161,7 +161,7 @@ type Stmt struct {
 	SelectCols []string
 
 	sqlType      Type
-	insertSelect *Stmt
+	// insertSelect *Stmt
 	rawData    []interface{}
 }
 
@@ -219,7 +219,7 @@ func (stmt *Stmt) Init() {
 	stmt.SelectCols = []string{}
 
 	stmt.sqlType = RawType
-	stmt.insertSelect = nil
+	// stmt.insertSelect = nil
 }
 
 func (stmt *Stmt) Reset() {
@@ -247,7 +247,7 @@ func (stmt *Stmt) Reset() {
 	stmt.SelectCols = stmt.SelectCols[:0]
 
 	stmt.sqlType = RawType
-	stmt.insertSelect = nil
+	// stmt.insertSelect = nil
 }
 
 func (stmt *Stmt) Destroy() {
@@ -411,8 +411,8 @@ func (stmt *Stmt) Values(data ...interface{}) *Stmt {
 		case []interface{}:
 			InsertValues := getCondExprListWithSize(len(curData)) //make([]condExpr, len(curData))
 			for i, val := range curData {
-				if e, ok := val.(condExpr); ok {
-					InsertValues.SetIthWithExpr(i, &e)
+				if e, ok := val.(*condExpr); ok {
+					InsertValues.SetIthWithExpr(i, e)
 				} else {
 					InsertValues.SetIth(i, db.Para, val)//[i].Set(db.Para, val)
 				}
@@ -424,8 +424,8 @@ func (stmt *Stmt) Values(data ...interface{}) *Stmt {
 			for i, col := range curData.sortedKeys() {
 				insertCols = append(insertCols, col)
 				val := curData[col]
-				if e, ok := val.(condExpr); ok {
-					insertValues.SetIthWithExpr(i, &e)
+				if e, ok := val.(*condExpr); ok {
+					insertValues.SetIthWithExpr(i, e)
 				} else {
 					insertValues.SetIth(i, db.Para, val)//[i].Set(db.Para, val)
 				}
@@ -433,7 +433,8 @@ func (stmt *Stmt) Values(data ...interface{}) *Stmt {
 			stmt.InsertCols = insertCols
 			stmt.InsertValues.append(insertValues)
 		case *Stmt:
-			stmt.insertSelect = curData
+			stmt.From(curData)
+			// stmt.insertSelect = curData
 		default:
 			if len(stmt.InsertCols) == 0 {
 				buildColumns(&stmt.InsertCols, curData)
@@ -493,8 +494,8 @@ func (stmt *Stmt) valuesBulkInternal(data *reflect.Value) *Stmt {
 		case []interface{}:
 			insertValues := getCondExprListWithSize(len(curData)) //make([]condExpr, len(curData))
 			for j, val := range curData {
-				if e, ok := val.(condExpr); ok {
-					insertValues.SetIthWithExpr(j, &e)
+				if e, ok := val.(*condExpr); ok {
+					insertValues.SetIthWithExpr(j, e)
 				} else {
 					insertValues.SetIth(j, db.Para, val)
 				}
@@ -504,15 +505,17 @@ func (stmt *Stmt) valuesBulkInternal(data *reflect.Value) *Stmt {
 			insertValues := getCondExprListWithSize(len(curData)) //make([]condExpr, len(curData))
 			for j, col := range stmt.InsertCols {
 				val := curData[col]
-				if e, ok := val.(condExpr); ok {
-					insertValues.SetIthWithExpr(j, &e)
+				if e, ok := val.(*condExpr); ok {
+					insertValues.SetIthWithExpr(j, e)
 				} else {
 					insertValues.SetIth(j, db.Para, val)
 				}
 			}
 			stmt.InsertValues.append(insertValues)
-		case *Stmt:
-			stmt.insertSelect = curData
+		// curData cannot be a *stmt as curData is supposed to be a single record. 
+		// case *Stmt:
+		// 	stmt.From(curData)
+			// stmt.insertSelect = curData
 		default:
 			insertValues := buildValues(curData)
 			if insertValues != nil {
@@ -548,7 +551,8 @@ func (stmt *Stmt) From(subject interface{}, alias ...string) *Stmt {
 	var from fromItem
 	switch subject := subject.(type) {
 	case *Stmt:
-		//subquery should be a select statement
+		//subquery should be a select statement, and we only accept one select stmt
+		stmt.tableFrom = stmt.tableFrom[:0]
 		from = createFromStmt(subject, "")
 	case Table:
 		from = createFromTable(subject.GetTableName(), "")
@@ -722,10 +726,10 @@ func (stmt *Stmt) setExpr(col string, expr interface{}, args ...interface{}) *St
 // Todo support expr as SQLStmt
 func (stmt *Stmt) setMap(exprs Map) *Stmt {
 	// avoid extend the slice cap which causes memory reallocation
-	stmt.SetCols.extend(len(exprs))
+	// stmt.SetCols.extend(len(exprs))
 	for col, val := range exprs {
-		if e, ok := val.(condExpr); ok {
-			stmt.SetCols.addParam(col, e)
+		if e, ok := val.(*condExpr); ok {
+			stmt.SetCols.addParam(col, Expr(e.sql, e.args...))
 		} else {
 			stmt.SetCols.addParam(col, Expr(db.Para, val))
 		}
@@ -740,9 +744,9 @@ func (stmt *Stmt) setStruct(data interface{}) *Stmt {
 	vType := v.Type()
 	if vType.Kind() == reflect.Struct {
 
-		numField := v.NumField()
+		// numField := v.NumField()
 		// avoid extend the slice cap which causes memory reallocation
-		stmt.SetCols.extend(numField)
+		// stmt.SetCols.extend(numField)
 
 		for i, il := 0, v.NumField(); i < il; i++ {
 			// Get column name, tag start with "pg" or the field Name
@@ -753,27 +757,23 @@ func (stmt *Stmt) setStruct(data interface{}) *Stmt {
 			}
 
 			// Get value
-			var val interface{}
 			fieldValue := v.Field(i)
-			val = fieldValue.Interface()
-
-			/*fieldType := reflect.TypeOf(fieldValue.Interface())
-			switch fieldType.Kind() {
-			case reflect.Bool:
-				val = fieldValue.Bool()
-			case reflect.String:
-				val = fieldValue.String()
-			case reflect.Int8, reflect.Int16, reflect.Int, reflect.Int32, reflect.Int64:
-				val = fieldValue.Int()
-			case reflect.Float32, reflect.Float64:
-				val = fieldValue.Float()
-			case reflect.Uint8, reflect.Uint16, reflect.Uint, reflect.Uint32, reflect.Uint64:
-				val = fieldValue.Uint()
+			switch fieldValue.Kind() {
 			default:
-				val = fieldValue.Interface()
-			}*/
-
-			stmt.SetCols.addParam(colName, Expr(db.Para, val))
+				stmt.SetCols.addParam(colName, Expr(db.Para, fieldValue.Interface()))
+			case reflect.Bool:
+				stmt.SetCols.addParam(colName, Expr(db.Para, fieldValue.Bool()))
+			case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
+				stmt.SetCols.addParam(colName, Expr(db.Para, fieldValue.Int()))
+			case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
+				stmt.SetCols.addParam(colName, Expr(db.Para, fieldValue.Uint()))
+			case reflect.Float32, reflect.Float64:
+				stmt.SetCols.addParam(colName, Expr(db.Para, fieldValue.Float()))
+			case reflect.Complex64, reflect.Complex128:
+				stmt.SetCols.addParam(colName, Expr(db.Para, fieldValue.Complex()))
+			case reflect.String:
+				stmt.SetCols.addParam(colName, Expr(db.Para, fieldValue.String()))
+			}
 		}
 	}
 	return stmt
@@ -785,8 +785,6 @@ func (stmt *Stmt) Set(data interface{}, args ...interface{}) *Stmt {
 		argLen := len(args)
 		if argLen >= 1 {
 			stmt.setExpr(data, args[0], args[1:]...)
-		} else {
-			// Todo Raise Error
 		}
 	case Map:
 		stmt.setMap(data)
@@ -806,14 +804,13 @@ func (stmt *Stmt) Where(query interface{}, args ...interface{}) *Stmt {
 func (stmt *Stmt) catCond(c Cond, OpFunc func(cond ...Cond) Cond, query interface{}, args ...interface{}) Cond {
 	switch query := query.(type) {
 	case string:
-		cond := Expr(query, args...)
+		cond := CondExpr(query, args...)
 		c = OpFunc(c, cond)
 	case Map:
-		//
 		conds := condAndPool.Get().(*condAnd) //make([]Cond, 0, len(query)+1)
 		*conds = append(*conds, c)
 		for _, k := range query.sortedKeys() {
-			*conds = append(*conds, Expr(k+" = "+db.Para, query[k]))
+			*conds = append(*conds, CondExpr(k+" = "+db.Para, query[k]))
 		}
 		c = OpFunc(*conds...)
 		*conds = (*conds)[:0]
@@ -964,6 +961,6 @@ func (stmt *Stmt) Limit(limit int, offset ...int) *Stmt {
 	return stmt
 }
 
-func (stmt *Stmt) SQL() (string, []interface{}) {
-	return "", []interface{}{}
-}
+// func (stmt *Stmt) SQL() (string, []interface{}) {
+// 	return "", []interface{}{}
+// }

@@ -9,10 +9,10 @@ import (
 
 var (
 	condEmpty = sqlBuilderV3.NewCond()
-	condNull  = sqlBuilderV3.Expr("")
-	cond1     = sqlBuilderV3.Expr("A < ?", 1)
-	cond2     = sqlBuilderV3.Expr("B = ?", "hello")
-	cond3     = sqlBuilderV3.Expr("C LIKE ?", "username")
+	condNull  = sqlBuilderV3.CondExpr("")
+	cond1     = sqlBuilderV3.CondExpr("A < ?", 1)
+	cond2     = sqlBuilderV3.CondExpr("B = ?", "hello")
+	cond3     = sqlBuilderV3.CondExpr("C LIKE ?", "username")
 	w         = sqlBuilderV3.NewWriter()
 )
 

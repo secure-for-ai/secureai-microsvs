@@ -15,13 +15,17 @@ var condExprPool = sync.Pool{
 }
 
 // Expr generate customize SQL
-func Expr(sql string, args ...interface{}) Cond {
-	if len(sql) == 0 {
-		return CondEmpty
-	}
+func Expr(sql string, args ...interface{}) *condExpr {
 	var expr = condExprPool.Get().(*condExpr)
 	expr.Set(sql, args...)
 	return expr
+}
+
+func CondExpr(sql string, args ...interface{}) Cond {
+	if len(sql) == 0 {
+		return CondEmpty
+	}
+	return Expr(sql, args...)
 }
 
 func (expr *condExpr) Set(sql string, args ...interface{}) {
@@ -66,8 +70,5 @@ func (expr *condExpr) Destroy() {
 }
 
 func Eq(sql string, arg interface{}) Cond {
-	if len(sql) == 0 {
-		return condEmpty{}
-	}
-	return Expr(sql+" = ?", arg)
+	return CondExpr(sql+" = ?", arg)
 }
