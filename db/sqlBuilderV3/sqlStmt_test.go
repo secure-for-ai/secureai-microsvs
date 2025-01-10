@@ -213,6 +213,10 @@ func TestSQLStmt_Insert(t *testing.T) {
 	evalSingleMap()
 	sql, args, err = sqlBuilderV3.Insert().IntoTable("student").Values(stuValExpr).Gen(w)
 	evalSingleMap()
+	sql, args, err = sqlBuilderV3.Insert().IntoTable("student").IntoColumns(stuVal).Values(stuVal).Gen(w)
+	evalSingleMap()
+	sql, args, err = sqlBuilderV3.Insert().IntoTable("student").IntoColumns(stuVal).Values(stuValExpr).Gen(w)
+	evalSingleMap()
 	// Test insert []interface{} value only
 	sql, args, err = sqlBuilderV3.Insert().IntoTable("student").
 		Values(stuStructArr).Gen(w)
