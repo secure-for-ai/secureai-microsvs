@@ -4,17 +4,31 @@ import (
 	"sync"
 )
 
-type condExprList []condExpr
+type valExpr struct {
+	sql  string
+	args []interface{}
+}
 
-var condExprListPool = sync.Pool{
+func (expr *valExpr) Set(sql string, args ...interface{}) {
+	expr.sql = sql
+	expr.args = append(expr.args[:0], args...)
+}
+
+func (expr *valExpr) String() string {
+	return expr.sql
+}
+
+type valExprList []valExpr
+
+var valExprListPool = sync.Pool{
 	New: func() interface{} {
-		exprList := make(condExprList, 0, 4)
+		exprList := make(valExprList, 0, 4)
 		return &exprList
 	},
 }
 
-func getCondExprListWithSize(n int) *condExprList {
-	exprList := condExprListPool.Get().(*condExprList)
+func getValExprListWithSize(n int) *valExprList {
+	exprList := valExprListPool.Get().(*valExprList)
 	if n <= cap(*exprList) {
 		*exprList = (*exprList)[:n]
 	} else {
@@ -22,39 +36,38 @@ func getCondExprListWithSize(n int) *condExprList {
 		if c < 2*cap(*exprList) {
 			c = 2 * cap(*exprList)
 		}
-		exprList2 := append(condExprList(nil), make(condExprList, c)...)
+		exprList2 := append(valExprList(nil), make(valExprList, c)...)
 		copy(exprList2, *exprList)
 		*exprList = exprList2[:n]
 	}
 	return exprList
 }
 
-func (exprList *condExprList) Destroy() {
-	// *exprList = (*exprList)[:0]
-	condExprListPool.Put(exprList)
+func (exprList *valExprList) Destroy() {
+	valExprListPool.Put(exprList)
 }
 
-func (exprList *condExprList) SetIth(i int, sql string, args ...interface{}) {
+func (exprList *valExprList) SetIth(i int, sql string, args ...interface{}) {
 	(*exprList)[i].Set(sql, args...)
 }
 
-func (exprList *condExprList) SetIthWithExpr(i int, expr *condExpr) {
+func (exprList *valExprList) SetIthWithExpr(i int, expr *condExpr) {
 	// we deep-copy the memory rather than do (*exprList)[i] = *expr.
 	// If we do so, (*exprList)[i].args is indeed expr.args. Then, when we
 	// return *exprList to the sync pool, the slice (*exprList)[i].args may be
 	// still used by other objects. This can mess up the memory management and
 	// cause segmentation faults.
-	(*exprList)[i].Set(expr.sql, expr.args...)
+	(*exprList)[i].Set(expr.String(), expr.args...)
 }
 
-type condExpr2DList []*condExprList
+type valExpr2DList []*valExprList
 
-func newCondExpr2DList(n int) condExpr2DList {
-	return make(condExpr2DList, 0, n)
+func newValExpr2DList(n int) valExpr2DList {
+	return make(valExpr2DList, 0, n)
 }
 
 // Ensure that there are at least n entries left in the list: cap(*list) - len(*list) >= n
-func (list *condExpr2DList) grow(n int) {
+func (list *valExpr2DList) grow(n int) {
 	c := len(*list) + n
 
 	// grow the cap
@@ -62,13 +75,13 @@ func (list *condExpr2DList) grow(n int) {
 		if c < 2*cap(*list) {
 			c = 2 * cap(*list)
 		}
-		list2 := append(condExpr2DList(nil), make(condExpr2DList, c)...)
+		list2 := append(valExpr2DList(nil), make(valExpr2DList, c)...)
 		copy(list2, *list)
 		*list = list2[:len(*list)]
 	}
 }
 
-func (list *condExpr2DList) reset() {
+func (list *valExpr2DList) reset() {
 	for i, il := 0, len(*list); i < il; i++ {
 		(*list)[i].Destroy()
 	}
@@ -78,6 +91,6 @@ func (list *condExpr2DList) reset() {
 	*list = (*list)[:0]
 }
 
-func (list *condExpr2DList) append(val *condExprList) {
+func (list *valExpr2DList) append(val *valExprList) {
 	*list = append(*list, val)
 }

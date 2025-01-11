@@ -98,8 +98,11 @@ var (
 		"uid":      uid,
 		"username": "Alice",
 	}
-	stuMap = sqlBuilderV3.Map{
+	stuMapUid = sqlBuilderV3.Map{
 		"uid": uid,
+	}
+	stuMapUsername = sqlBuilderV3.Map{
+		"username": "Alice",
 	}
 	stuVal = sqlBuilderV3.Map{
 		"uid":         uid,
@@ -297,9 +300,9 @@ func TestSQLStmt_Insert(t *testing.T) {
 		assert.EqualValues(t, []interface{}{uid}, args)
 	}
 
-	sql, args, err = sqlBuilderV3.Insert().IntoTable("student").Select(stuStruct).Where(stuMap).Gen(w)
+	sql, args, err = sqlBuilderV3.Insert().IntoTable("student").Select(stuStruct).Where(stuMapUid).Gen(w)
 	evalSelect1()
-	sql, args, err = sqlBuilderV3.Insert().IntoTable(&stuStruct).Select(&stuStruct).Where(stuMap).Gen(w)
+	sql, args, err = sqlBuilderV3.Insert().IntoTable(&stuStruct).Select(&stuStruct).Where(stuMapUid).Gen(w)
 	evalSelect1()
 
 	evalSelect2 := func() {
@@ -307,7 +310,7 @@ func TestSQLStmt_Insert(t *testing.T) {
 		assert.EqualValues(t, "INSERT INTO student (uid,username,nickname,email,age,enrolled,gpa,tokens,comp,create_time,update_time) SELECT uid,username,nickname,email,age,enrolled,gpa,tokens,comp,create_time,update_time FROM student WHERE uid = ?", sql)
 		assert.EqualValues(t, []interface{}{uid}, args)
 	}
-	sql, args, err = sqlBuilderV3.Insert(&stuStruct).Select(&stuStruct).Where(stuMap).Gen(w)
+	sql, args, err = sqlBuilderV3.Insert(&stuStruct).Select(&stuStruct).Where(stuMapUid).Gen(w)
 	evalSelect2()
 }
 
@@ -327,7 +330,7 @@ func TestSQLStmt_Delete(t *testing.T) {
 	evalStruct()
 	sql, args, err = sqlBuilderV3.Delete(&stuStruct, uidEq100).Gen(w)
 	evalStruct()
-	sql, args, err = sqlBuilderV3.Delete(&stuStruct, stuMap).Gen(w)
+	sql, args, err = sqlBuilderV3.Delete(&stuStruct, stuMapUid).Gen(w)
 	evalStruct()
 	sql, args, err = sqlBuilderV3.Delete(&stuStruct).Where(uidEq100).Gen(w)
 	evalStruct()
@@ -355,6 +358,10 @@ func TestSQLStmt_Delete(t *testing.T) {
 	evalAnd()
 	sql, args, err = sqlBuilderV3.Delete(&stuStruct).Where(uidEq100).And(usernameEqAlice).Gen(w)
 	evalAnd()
+	sql, args, err = sqlBuilderV3.Delete(&stuStruct).Where(stuMapUid).And(stuMapUsername).Gen(w)
+	evalAnd()
+	sql, args, err = sqlBuilderV3.Delete(&stuStruct, eqCond).Gen(w)
+	evalAnd()
 
 	evalOr := func() {
 		assert.NoError(t, err)
@@ -364,6 +371,11 @@ func TestSQLStmt_Delete(t *testing.T) {
 	sql, args, err = sqlBuilderV3.Delete(&stuStruct).Where(uidEq100).Or(usernameEqAlice).Gen(w)
 	evalOr()
 	sql, args, err = sqlBuilderV3.Delete(&stuStruct).Where(nil).Or(uidEq100, usernameEqAlice).Gen(w)
+	evalOr()
+	sql, args, err = sqlBuilderV3.Delete(&stuStruct).Where(stuMapUid).Or(stuMapUsername).Gen(w)
+	evalOr()
+	sql, args, err = sqlBuilderV3.Delete(&stuStruct).Or(eqCond).Gen(w)
+	evalOr()
 
 	evalEmpty := func() {
 		assert.NoError(t, err)
@@ -426,15 +438,15 @@ func TestSQLStmt_Update(t *testing.T) {
 		assert.EqualValues(t, "UPDATE student SET uid = ?", sql)
 		assert.EqualValues(t, []interface{}{uid}, args)
 	}
-	sql, args, err = sqlBuilderV3.Update(stuMap).From(&stuStruct).Gen(w)
+	sql, args, err = sqlBuilderV3.Update(stuMapUid).From(&stuStruct).Gen(w)
 	evalMap()
-	sql, args, err = sqlBuilderV3.Update(stuMap).From("student").Gen(w)
+	sql, args, err = sqlBuilderV3.Update(stuMapUid).From("student").Gen(w)
 	evalMap()
-	sql, args, err = sqlBuilderV3.Update().From(&stuStruct).Set(stuMap).Gen(w)
+	sql, args, err = sqlBuilderV3.Update().From(&stuStruct).Set(stuMapUid).Gen(w)
 	evalMap()
-	sql, args, err = sqlBuilderV3.Update().From("student").Set(stuMap).Gen(w)
+	sql, args, err = sqlBuilderV3.Update().From("student").Set(stuMapUid).Gen(w)
 	evalMap()
-	sql, args, err = sqlBuilderV3.Update("student").Set(stuMap).Gen(w)
+	sql, args, err = sqlBuilderV3.Update("student").Set(stuMapUid).Gen(w)
 	evalMap()
 	sql, args, err = sqlBuilderV3.Update("student").Set(stuMapExpr).Gen(w)
 	evalMap()
@@ -722,7 +734,7 @@ func TestSQLStmt_Nest(t *testing.T) {
 		assert.EqualValues(t, "INSERT INTO student (uid,username,nickname,email,age,enrolled,gpa,tokens,comp,create_time,update_time) (SELECT uid,username,nickname,email,age,enrolled,gpa,tokens,comp,create_time,update_time FROM student WHERE uid = ?)", sql)
 		assert.EqualValues(t, []interface{}{uid}, args)
 	}
-	selectStmt := sqlBuilderV3.Select(&stuStruct).Where(stuMap)
+	selectStmt := sqlBuilderV3.Select(&stuStruct).Where(stuMapUid)
 	sql, args, err = sqlBuilderV3.Insert(&stuStruct).Values(selectStmt).Gen(w)
 	evalInsertSelect()
 
@@ -731,7 +743,7 @@ func TestSQLStmt_Nest(t *testing.T) {
 		assert.EqualValues(t, "SELECT * FROM (SELECT uid,username,nickname,email,age,enrolled,gpa,tokens,comp,create_time,update_time FROM student WHERE uid = ?) AS S1,(SELECT uid,username,nickname,email,age,enrolled,gpa,tokens,comp,create_time,update_time FROM student WHERE uid = ?) AS S2", sql)
 		assert.EqualValues(t, []interface{}{uid, uid}, args)
 	}
-	selectStmt2 := sqlBuilderV3.Select(&stuStruct).Where(stuMap)
+	selectStmt2 := sqlBuilderV3.Select(&stuStruct).Where(stuMapUid)
 	sql, args, err = sqlBuilderV3.Select().From(selectStmt, "S1").From(selectStmt2, "S2").Gen(w)
 	evalJoin()
 }

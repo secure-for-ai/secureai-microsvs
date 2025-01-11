@@ -1,9 +1,11 @@
 package sqlBuilderV3
 
-import "sync"
+import (
+	"sync"
+)
 
 type condExpr struct {
-	sql  string
+	sql *stringWriter
 	args []interface{}
 }
 
@@ -17,7 +19,8 @@ var condExprPool = sync.Pool{
 // Expr generate customize SQL
 func Expr(sql string, args ...interface{}) *condExpr {
 	var expr = condExprPool.Get().(*condExpr)
-	expr.Set(sql, args...)
+	expr.sql = bufPool.Get().(*stringWriter)
+	expr.set(sql, args...)
 	return expr
 }
 
@@ -28,15 +31,13 @@ func CondExpr(sql string, args ...interface{}) Cond {
 	return Expr(sql, args...)
 }
 
-func (expr *condExpr) Set(sql string, args ...interface{}) {
-	expr.sql = sql
-	// expr.args = args
-	// expr.args = expr.args[:0]
+func (expr *condExpr) set(sql string, args ...interface{}) {
+	expr.sql.WriteString(sql)
 	expr.args = append(expr.args[:0], args...)
 }
 
 func (expr *condExpr) WriteTo(w *Writer) {
-	w.WriteString(expr.sql)
+	w.WriteString(expr.String())
 	w.Append(expr.args...)
 }
 
@@ -56,19 +57,30 @@ func (expr *condExpr) Or(conds ...Cond) Cond {
 }
 
 func (expr *condExpr) IsValid() bool {
-	return len(expr.sql) > 0
+	return expr.sql.Len() > 0
 }
 
 func (expr *condExpr) Reset() {
-	expr.sql = ""
+	expr.sql.Reset()
 	expr.args = expr.args[:0]
 }
 
 func (expr *condExpr) Destroy() {
-	expr.Reset()
+	expr.sql.Destroy()
+	expr.args = expr.args[:0]
 	condExprPool.Put(expr)
 }
 
+func (expr *condExpr) String() string {
+	return expr.sql.String()
+}
+
+func (expr *condExpr) Append(sql string) {
+	expr.sql.WriteString(sql)
+}
+
 func Eq(sql string, arg interface{}) Cond {
-	return CondExpr(sql+" = ?", arg)
+	cond := Expr(sql, arg)
+	cond.Append(" = ?")
+	return cond
 }

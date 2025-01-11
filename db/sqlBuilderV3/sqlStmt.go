@@ -2,7 +2,6 @@ package sqlBuilderV3
 
 import (
 	"bytes"
-	"sort"
 	"strings"
 	"sync"
 	_ "unsafe"
@@ -27,15 +26,6 @@ const (
 
 type Columns []string
 type Map map[string]interface{}
-
-func (m Map) sortedKeys() []string {
-	keys := make([]string, 0, len(m))
-	for key := range m {
-		keys = append(keys, key)
-	}
-	sort.Strings(keys)
-	return keys
-}
 
 type Table interface {
 	GetTableName() string
@@ -145,16 +135,22 @@ type Stmt struct {
 	tableFrom []fromItem
 
 	where Cond
+	// tracker internal created conds. Reset() only destroy
+	// refed conds. This can avoid double free.
+	whereRef []Cond
 
 	GroupByStr *bytes.Buffer
 	having     Cond
+	// tracker internal created conds. Reset() only destroy
+	// refed conds. This can avoid double free.
+	havingRef  []Cond
 	OrderByStr *bytes.Buffer
 
 	Offset int
 	LimitN int
 
 	InsertCols   []string
-	InsertValues condExpr2DList
+	InsertValues valExpr2DList
 	//isInsertBulk bool
 
 	SetCols colParams
@@ -210,15 +206,17 @@ func (stmt *Stmt) Init() {
 	stmt.tableFrom = make([]fromItem, 0, 2)
 
 	stmt.where = condEmpty{}
+	stmt.whereRef = make([]Cond, 0, 2)
 	stmt.GroupByStr = new(bytes.Buffer)
 	stmt.having = condEmpty{}
+	stmt.havingRef = make([]Cond, 0, 2)
 	stmt.OrderByStr = new(bytes.Buffer)
 
 	stmt.Offset = 0
 	stmt.LimitN = 0
 
 	stmt.InsertCols = []string{}
-	stmt.InsertValues = newCondExpr2DList(2)
+	stmt.InsertValues = newValExpr2DList(2)
 	//stmt.isInsertBulk = false
 	stmt.SetCols = colParams{}
 	stmt.SelectCols = []string{}
@@ -236,11 +234,19 @@ func (stmt *Stmt) Reset() {
 	}
 	stmt.tableFrom = stmt.tableFrom[:0]
 
-	stmt.where.Destroy()
+	// stmt.where.Destroy()
 	stmt.where = condEmpty{}
+	for _, cond := range stmt.whereRef {
+		cond.Destroy()
+	}
+	stmt.whereRef = stmt.whereRef[:0]
 	stmt.GroupByStr.Reset()
-	stmt.having.Destroy()
+	// stmt.having.Destroy()
 	stmt.having = condEmpty{}
+	for _, cond := range stmt.havingRef {
+		cond.Destroy()
+	}
+	stmt.havingRef = stmt.havingRef[:0]
 	stmt.OrderByStr.Reset()
 
 	stmt.Offset = 0
@@ -277,6 +283,10 @@ type stringWriter struct {
 
 func (w *stringWriter) Reset() {
 	w.Buffer.Reset()
+}
+
+func (w *stringWriter) Destroy() {
+	w.Reset()
 	bufPool.Put(w)
 }
 
@@ -308,7 +318,7 @@ func buildColumns(colNames *[]string, column interface{}) {
 		if ok {
 			*colNames = append(*colNames, structColNames.([]string)...)
 			// free *byte.Buffer
-			w.Reset()
+			w.Destroy()
 			return
 		}
 
@@ -329,19 +339,19 @@ func buildColumns(colNames *[]string, column interface{}) {
 		*colNames = append(*colNames, tmpColNames...)
 		structColumnCache.Store(strings.Clone(structFullName), tmpColNames)
 		// free *byte.Buffer
-		w.Reset()
+		w.Destroy()
 	}
 }
 
 //go:linkname valueInterface reflect.valueInterface
 func valueInterface(v reflect.Value, safe bool) any
 
-func buildValues(curData interface{}) *condExprList {
+func buildValues(curData interface{}) *valExprList {
 	v := util.ReflectValue(curData)
 	vType := v.Type()
 	if vType.Kind() == reflect.Struct {
 		numField := v.NumField()
-		values := getCondExprListWithSize(numField) //make([]condExpr, numField)
+		values := getValExprListWithSize(numField) //make([]condExpr, numField)
 		for i, il := 0, numField; i < il; i++ {
 			// Get value
 			fieldValue := v.Field(i)
@@ -432,7 +442,7 @@ func (stmt *Stmt) ValuesOne(data interface{}) *Stmt {
 	curData := data
 	switch curData := curData.(type) {
 	case []interface{}:
-		InsertValues := getCondExprListWithSize(len(curData)) //make([]condExpr, len(curData))
+		InsertValues := getValExprListWithSize(len(curData)) //make([]condExpr, len(curData))
 		for i, val := range curData {
 			if e, ok := val.(*condExpr); ok {
 				InsertValues.SetIthWithExpr(i, e)
@@ -500,7 +510,7 @@ func (stmt *Stmt) valuesBulkInternal(data *reflect.Value) *Stmt {
 		curData := data.Index(i).Interface()
 		switch curData := curData.(type) {
 		case []interface{}:
-			insertValues := getCondExprListWithSize(len(curData)) //make([]condExpr, len(curData))
+			insertValues := getValExprListWithSize(len(curData)) //make([]condExpr, len(curData))
 			for j, val := range curData {
 				if e, ok := val.(*condExpr); ok {
 					insertValues.SetIthWithExpr(j, e)
@@ -510,7 +520,7 @@ func (stmt *Stmt) valuesBulkInternal(data *reflect.Value) *Stmt {
 			}
 			stmt.InsertValues.append(insertValues)
 		case Map:
-			insertValues := getCondExprListWithSize(len(curData)) //make([]condExpr, len(curData))
+			insertValues := getValExprListWithSize(len(curData)) //make([]condExpr, len(curData))
 			for j, col := range stmt.InsertCols {
 				val := curData[col]
 				if e, ok := val.(*condExpr); ok {
@@ -746,7 +756,7 @@ func (stmt *Stmt) setMap(exprs Map) *Stmt {
 	// stmt.SetCols.extend(len(exprs))
 	for col, val := range exprs {
 		if e, ok := val.(*condExpr); ok {
-			stmt.SetCols.addParam(col, Expr(e.sql, e.args...))
+			stmt.SetCols.addParam(col, Expr(e.String(), e.args...))
 		} else {
 			stmt.SetCols.addParam(col, Expr(db.Para, val))
 		}
@@ -813,52 +823,65 @@ func (stmt *Stmt) Set(data interface{}, args ...interface{}) *Stmt {
 }
 
 func (stmt *Stmt) Where(query interface{}, args ...interface{}) *Stmt {
-	stmt.where = stmt.catCond(stmt.where, And, query, args...)
+	stmt.catCond(&stmt.where, &stmt.whereRef, And, query, args...)
 	return stmt
 }
 
 // concat an existing Cond and a new Cond statement with Op
-func (stmt *Stmt) catCond(c Cond, OpFunc func(cond ...Cond) Cond, query interface{}, args ...interface{}) Cond {
+func (stmt *Stmt) catCond(c *Cond, ref *[]Cond, OpFunc func(cond ...Cond) Cond, query interface{}, args ...interface{}) {
 	switch query := query.(type) {
 	case string:
 		cond := CondExpr(query, args...)
-		c = OpFunc(c, cond)
+		*c = OpFunc(*c, cond)
+		// self created cond is stored in the ref
+		*ref = append(*ref, cond)
 	case Map:
 		conds := condAndPool.Get().(*condAnd) //make([]Cond, 0, len(query)+1)
-		*conds = append(*conds, c)
-		for _, k := range query.sortedKeys() {
-			*conds = append(*conds, CondExpr(k+" = "+db.Para, query[k]))
+		if _, ok := (*c).(condEmpty); !ok {
+			*conds = append(*conds, *c)
 		}
-		c = OpFunc(*conds...)
+		catCondMap(ref, query, conds)
+		*c = OpFunc(*conds...)
+		if len(*conds) >= 2 {
+			// we must construct a new cond either CondAnd or CondOr,
+			// thus store *c into the ref
+			*ref = append(*ref, *c)
+		}
 		*conds = (*conds)[:0]
 		condAndPool.Put(conds)
 	case Cond:
 		conds := condAndPool.Get().(*condAnd) //make([]Cond, 0, len(args)+2)
-		*conds = append(*conds, c)
+		if _, ok := (*c).(condEmpty); !ok {
+			*conds = append(*conds, *c)
+		}
 		*conds = append(*conds, query)
 		for _, v := range args {
 			if vv, ok := v.(Cond); ok {
 				*conds = append(*conds, vv)
 			}
 		}
-		c = OpFunc(*conds...)
+		*c = OpFunc(*conds...)
+		if len(*conds) >= 2 {
+			// we must construct a new cond either CondAnd or CondOr,
+			// thus store *c into the ref
+			*ref = append(*ref, *c)
+		}
 		*conds = (*conds)[:0]
 		condAndPool.Put(conds)
 	default:
 		// TODO: not support condition type
 	}
-	return c
 }
 
 // And add Where & and statement
 func (stmt *Stmt) And(query interface{}, args ...interface{}) *Stmt {
-	stmt.where = stmt.catCond(stmt.where, And, query, args...)
+	stmt.catCond(&stmt.where, &stmt.whereRef, And, query, args...)
 	return stmt
 }
 
 // Or add Where & Or statement
 func (stmt *Stmt) Or(query interface{}, args ...interface{}) *Stmt {
-	stmt.where = stmt.catCond(stmt.where, Or, query, args...)
+	stmt.catCond(&stmt.where, &stmt.whereRef, Or, query, args...)
 	return stmt
 }
 
@@ -894,19 +917,19 @@ func (stmt *Stmt) GroupBy(keys ...string) *Stmt {
 
 // GroupBy generate "Having conditions" statement
 func (stmt *Stmt) Having(query interface{}, args ...interface{}) *Stmt {
-	stmt.having = stmt.catCond(stmt.having, And, query, args...)
+	stmt.catCond(&stmt.having, &stmt.havingRef, And, query, args...)
 	return stmt
 }
 
 // GroupBy generate "Having conditions" statement && conditions
 func (stmt *Stmt) HavingAnd(query interface{}, args ...interface{}) *Stmt {
-	stmt.having = stmt.catCond(stmt.having, And, query, args...)
+	stmt.catCond(&stmt.having, &stmt.havingRef, And, query, args...)
 	return stmt
 }
 
 // GroupBy generate "Having conditions" statement || conditions
 func (stmt *Stmt) HavingOr(query interface{}, args ...interface{}) *Stmt {
-	stmt.having = stmt.catCond(stmt.having, Or, query, args...)
+	stmt.catCond(&stmt.having, &stmt.havingRef, Or, query, args...)
 	return stmt
 }
 

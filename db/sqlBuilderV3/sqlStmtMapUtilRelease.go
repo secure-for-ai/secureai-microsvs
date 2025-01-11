@@ -3,12 +3,12 @@
 
 package sqlBuilderV3
 
-import(
+import (
 	"github.com/secure-for-ai/secureai-microsvs/db"
 )
 
 func (stmt *Stmt) valuesOneMap(data Map) {
-	insertValues := getCondExprListWithSize(len(data)) //make([]condExpr, len(curData))
+	insertValues := getValExprListWithSize(len(data)) //make([]condExpr, len(curData))
 	if len(stmt.InsertCols) == 0 {
 		i := 0
 		for col, val := range data {
@@ -40,5 +40,16 @@ func (stmt *Stmt) valuesOneMap(data Map) {
 func (stmt *Stmt) buildInsertColsByMap(data Map) {
 	for key := range data {
 		stmt.InsertCols = append(stmt.InsertCols, key)
+	}
+}
+
+func catCondMap(ref *[]Cond, query Map, conds *condAnd) {
+	for k, v := range query {
+		cond := Expr(k, v)
+		cond.Append(" = ")
+		cond.Append(db.Para)
+		// self created cond is stored in the ref
+		*ref = append(*ref, cond)
+		*conds = append(*conds, cond)
 	}
 }

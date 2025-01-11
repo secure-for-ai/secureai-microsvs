@@ -143,7 +143,7 @@ func (stmt *Stmt) insertWriteTo(w *Writer) error {
 		valuesLen := len(*values)
 
 		for i, value := range *values {
-			w.WriteString(value.sql)
+			w.WriteString(value.String())
 			w.Append(value.args...)
 			if i != valuesLen-1 {
 				w.WriteByte(',')
@@ -156,7 +156,7 @@ func (stmt *Stmt) insertWriteTo(w *Writer) error {
 		args := getArgs()
 
 		for i, value := range *values {
-			w.WriteString(value.sql)
+			w.WriteString(value.String())
 			*args = append(*args, value.args...)
 			if i != valuesLen-1 {
 				w.WriteByte(',')
