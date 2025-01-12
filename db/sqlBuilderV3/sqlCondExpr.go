@@ -2,10 +2,12 @@ package sqlBuilderV3
 
 import (
 	"sync"
+
+	"github.com/secure-for-ai/secureai-microsvs/db"
 )
 
 type condExpr struct {
-	sql *stringWriter
+	sql  *stringWriter
 	args []interface{}
 }
 
@@ -75,12 +77,120 @@ func (expr *condExpr) String() string {
 	return expr.sql.String()
 }
 
-func (expr *condExpr) Append(sql string) {
+func ExprInc(col string, args ...interface{}) *condExpr {
+	var para interface{} = 1
+	if len(args) > 0 {
+		para = args[0]
+	}
+	cond := Expr(col, para)
+	cond.appendSql(" = ")
+	cond.appendSql(col)
+	cond.appendSql(" + ")
+	cond.appendSql(db.Para)
+
+	return cond
+}
+
+func ExprDec(col string, args ...interface{}) *condExpr {
+	var para interface{} = 1
+	if len(args) > 0 {
+		para = args[0]
+	}
+	cond := Expr(col, para)
+	cond.appendSql(" = ")
+	cond.appendSql(col)
+	cond.appendSql(" - ")
+	cond.appendSql(db.Para)
+
+	return cond
+}
+
+func ExprSet(col string, val string, args ...interface{}) *condExpr {
+	cond := Expr(col, args...)
+	cond.appendSql(" = ")
+	cond.appendSql(val)
+	return cond
+}
+
+// set col append
+func (expr *condExpr) appendSql(sql string) {
 	expr.sql.WriteString(sql)
 }
 
-func Eq(sql string, arg interface{}) Cond {
+func (expr *condExpr) appendArgs(args ...interface{}) {
+	expr.args = append(expr.args, args...)
+}
+
+func (expr *condExpr) appendArg(arg interface{}) {
+	expr.args = append(expr.args, arg)
+}
+
+func ExprEq(sql string, arg interface{}) *condExpr {
 	cond := Expr(sql, arg)
-	cond.Append(" = ?")
+	cond.appendSql(" = ")
+	cond.appendSql(db.Para)
+
 	return cond
+}
+
+func (setCols *condExpr) appendExpr(e *condExpr) {
+	if setCols.IsValid() {
+		setCols.appendSql(",")
+	}
+	setCols.appendSql(e.String())
+	setCols.appendArgs(e.args...)
+}
+
+func (setCols *condExpr) appendEq(col string, arg interface{}) {
+	if setCols.IsValid() {
+		setCols.appendSql(",")
+	}
+	setCols.appendSql(col)
+	setCols.appendSql(" = ")
+	setCols.appendSql(db.Para)
+	setCols.appendArg(arg)
+}
+
+func (setCols *condExpr) appendInc(col string, args ...interface{}) {
+	var para interface{} = 1
+	if len(args) > 0 {
+		para = args[0]
+	}
+
+	if setCols.IsValid() {
+		setCols.appendSql(",")
+	}
+	setCols.appendSql(col)
+	setCols.appendSql(" = ")
+	setCols.appendSql(col)
+	setCols.appendSql(" + ")
+	setCols.appendSql(db.Para)
+	setCols.appendArg(para)
+}
+
+func (setCols *condExpr) appendDec(col string, args ...interface{}) {
+	var para interface{} = 1
+	if len(args) > 0 {
+		para = args[0]
+	}
+
+	if setCols.IsValid() {
+		setCols.appendSql(",")
+	}
+	setCols.appendSql(col)
+	setCols.appendSql(" = ")
+	setCols.appendSql(col)
+	setCols.appendSql(" - ")
+	setCols.appendSql(db.Para)
+	setCols.appendArg(para)
+}
+
+func (setCols *condExpr) appendSet(col string, val string, args ...interface{}) {
+	if setCols.IsValid() {
+		setCols.appendSql(",")
+	}
+	setCols.appendSql(col)
+	setCols.appendSql(" = ")
+	setCols.appendSql(val)
+	setCols.appendArgs(args...)
 }

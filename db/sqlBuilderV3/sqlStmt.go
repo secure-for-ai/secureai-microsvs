@@ -153,7 +153,9 @@ type Stmt struct {
 	InsertValues valExpr2DList
 	//isInsertBulk bool
 
-	SetCols colParams
+	// SetCols colParams
+	SetCols *condExpr //[]*condExpr
+	// SetColsRef []*condExpr
 
 	SelectCols []string
 
@@ -218,7 +220,9 @@ func (stmt *Stmt) Init() {
 	stmt.InsertCols = []string{}
 	stmt.InsertValues = newValExpr2DList(2)
 	//stmt.isInsertBulk = false
-	stmt.SetCols = colParams{}
+	// stmt.SetCols = colParams{}
+	stmt.SetCols = Expr("") //make([]*condExpr, 0, 4)
+	// stmt.SetColsRef = make([]*condExpr, 0, 4)
 	stmt.SelectCols = []string{}
 
 	stmt.sqlType = RawType
@@ -254,7 +258,13 @@ func (stmt *Stmt) Reset() {
 
 	stmt.InsertCols = stmt.InsertCols[:0]
 	stmt.InsertValues.reset()
-	stmt.SetCols = colParams{}
+	stmt.SetCols.Reset()
+	// stmt.SetCols = colParams{}
+	// stmt.SetCols = stmt.SetCols[:0]
+	// for _, expr := range stmt.SetColsRef {
+	// 	expr.Destroy()
+	// }
+	// stmt.SetColsRef = stmt.SetColsRef[:0]
 	stmt.SelectCols = stmt.SelectCols[:0]
 
 	stmt.sqlType = RawType
@@ -300,46 +310,85 @@ var bufPool = sync.Pool{
 	},
 }
 
+func buildColumnsInternal(v reflect.Value, vType reflect.Type) []string {
+	// construct the unique name of the struct with zero-copy method
+	w := bufPool.Get().(*stringWriter)
+	w.WriteString(vType.PkgPath())
+	w.WriteByte('.')
+	w.WriteString(vType.Name())
+	structFullName := w.String()
+	structColNames, ok := structColumnCache.Load(structFullName)
+
+	// write the column name of the struct from the cache
+	if ok {
+		// free *byte.Buffer
+		w.Destroy()
+		return structColNames.([]string)
+	}
+
+	// avoid extend the slice cap which causes memory reallocation
+	numField := v.NumField()
+	tmpColNames := make([]string, numField)
+	for i, il := 0, numField; i < il; i++ {
+		// Get column name, tag start with "pg" or the field Name
+		var colName string
+		fieldInfo := vType.Field(i)
+		if colName = fieldInfo.Tag.Get(db.Tag); colName == "" {
+			colName = fieldInfo.Name
+		}
+		tmpColNames[i] = colName
+	}
+
+	// store the column name of the struct into the cache
+	structColumnCache.Store(strings.Clone(structFullName), tmpColNames)
+	// free *byte.Buffer
+	w.Destroy()
+
+	return tmpColNames
+
+}
 func buildColumns(colNames *[]string, column interface{}) {
 	v := util.ReflectValue(column)
 	// println(v.String(), v.Type().PkgPath())
 	vType := v.Type()
 	// println(vType.Name(), vType.PkgPath(), vType.String())
 	if vType.Kind() == reflect.Struct {
-		// construct the unique name of the struct with zero-copy method
-		w := bufPool.Get().(*stringWriter)
-		w.WriteString(vType.PkgPath())
-		w.WriteByte('.')
-		w.WriteString(vType.Name())
-		structFullName := w.String()
-		structColNames, ok := structColumnCache.Load(structFullName)
+		// // construct the unique name of the struct with zero-copy method
+		// w := bufPool.Get().(*stringWriter)
+		// w.WriteString(vType.PkgPath())
+		// w.WriteByte('.')
+		// w.WriteString(vType.Name())
+		// structFullName := w.String()
+		// structColNames, ok := structColumnCache.Load(structFullName)
 
-		// write the column name of the struct from the cache
-		if ok {
-			*colNames = append(*colNames, structColNames.([]string)...)
-			// free *byte.Buffer
-			w.Destroy()
-			return
-		}
+		// // write the column name of the struct from the cache
+		// if ok {
+		// 	*colNames = append(*colNames, structColNames.([]string)...)
+		// 	// free *byte.Buffer
+		// 	w.Destroy()
+		// 	return
+		// }
 
-		// avoid extend the slice cap which causes memory reallocation
-		numField := v.NumField()
-		tmpColNames := make([]string, numField)
-		for i, il := 0, numField; i < il; i++ {
-			// Get column name, tag start with "pg" or the field Name
-			var colName string
-			fieldInfo := vType.Field(i)
-			if colName = fieldInfo.Tag.Get(db.Tag); colName == "" {
-				colName = fieldInfo.Name
-			}
-			tmpColNames[i] = colName
-		}
+		// // avoid extend the slice cap which causes memory reallocation
+		// numField := v.NumField()
+		// tmpColNames := make([]string, numField)
+		// for i, il := 0, numField; i < il; i++ {
+		// 	// Get column name, tag start with "pg" or the field Name
+		// 	var colName string
+		// 	fieldInfo := vType.Field(i)
+		// 	if colName = fieldInfo.Tag.Get(db.Tag); colName == "" {
+		// 		colName = fieldInfo.Name
+		// 	}
+		// 	tmpColNames[i] = colName
+		// }
 
-		// store the column name of the struct into the cache
-		*colNames = append(*colNames, tmpColNames...)
-		structColumnCache.Store(strings.Clone(structFullName), tmpColNames)
-		// free *byte.Buffer
-		w.Destroy()
+		// // store the column name of the struct into the cache
+		// *colNames = append(*colNames, tmpColNames...)
+		// structColumnCache.Store(strings.Clone(structFullName), tmpColNames)
+		// // free *byte.Buffer
+		// w.Destroy()
+
+		*colNames = append(*colNames, buildColumnsInternal(v, vType)...)
 	}
 }
 
@@ -706,23 +755,28 @@ func (stmt *Stmt) Select(data ...interface{}) *Stmt {
 	return stmt
 }
 
+// func (stmt *Stmt) setColsWithRef(expr *condExpr) {
+// 	// stmt.SetCols = append(stmt.SetCols, expr)
+// 	// stmt.SetColsRef = append(stmt.SetColsRef, expr)
+// }
+
+// func (stmt *Stmt) setColsWithoutRef(expr *condExpr) {
+// 	// stmt.SetCols = append(stmt.SetCols, expr)
+// }
+
 // Incr Generate  "Update ... Set column = column + arg" statement
-func (stmt *Stmt) Incr(col string, arg ...interface{}) *Stmt {
-	var para interface{} = 1
-	if len(arg) > 0 {
-		para = arg[0]
-	}
-	stmt.SetCols.addParam(col, Expr(col+" + "+db.Para, para))
+func (stmt *Stmt) Incr(col string, args ...interface{}) *Stmt {
+	// stmt.setColsWithRef(ExprInc(col, args...))
+	stmt.SetCols.appendInc(col, args...)
+	// stmt.SetCols.addParam(col, Expr(col+" + "+db.Para, para))
 	return stmt
 }
 
 // Decr Generate  "Update ... Set column = column - arg" statement
-func (stmt *Stmt) Decr(col string, arg ...interface{}) *Stmt {
-	var para interface{} = 1
-	if len(arg) > 0 {
-		para = arg[0]
-	}
-	stmt.SetCols.addParam(col, Expr(col+" - "+db.Para, para))
+func (stmt *Stmt) Decr(col string, args ...interface{}) *Stmt {
+	// stmt.setColsWithRef(ExprDec(col, args...))
+	stmt.SetCols.appendDec(col, args...)
+	// stmt.SetCols.addParam(col, Expr(col+" - "+db.Para, para))
 	return stmt
 }
 
@@ -731,18 +785,30 @@ func (stmt *Stmt) Decr(col string, arg ...interface{}) *Stmt {
 // then you'd better to call Set(col, Expr("Now()"))
 // Todo support expr as SQLStmt
 func (stmt *Stmt) setExpr(col string, expr interface{}, args ...interface{}) *Stmt {
-	if e, ok := expr.(string); ok {
+	switch e := expr.(type) {
+	case string:
 		if len(args) > 0 {
 			// set("col", "col||??", "test") => writeTo: col = col||??, args: "test"
-			stmt.SetCols.addParam(col, Expr(e, args...))
+			// stmt.setColsWithRef(ExprSet(col, e, args...))
+			stmt.SetCols.appendSet(col, e, args...)
+			// stmt.SetCols.addParam(col, Expr(e, args...))
 		} else {
 			// set("col", "test") => writeTo: col = ??, args: "test"
 			// equivalent to set("col", Para, "test")
-			stmt.SetCols.addParam(col, Expr(db.Para, e))
+			// stmt.setColsWithRef(ExprEq(col, e))
+			stmt.SetCols.appendEq(col, e)
+			// stmt.SetCols.addParam(col, Expr(db.Para, e))
+
 		}
-	} else {
-		stmt.SetCols.addParam(col, expr)
+	case *condExpr:
+		stmt.SetCols.appendSet(col, e.String(), e.args...)
+		// stmt.setColsWithRef(ExprSet(col, e.String(), e.args...))
+		// stmt.SetCols.addParam(col, expr)
+	default:
+		stmt.SetCols.appendEq(col, e)
+		// stmt.setColsWithRef(ExprEq(col, e))
 	}
+
 	return stmt
 }
 
@@ -756,9 +822,13 @@ func (stmt *Stmt) setMap(exprs Map) *Stmt {
 	// stmt.SetCols.extend(len(exprs))
 	for col, val := range exprs {
 		if e, ok := val.(*condExpr); ok {
-			stmt.SetCols.addParam(col, Expr(e.String(), e.args...))
+			stmt.SetCols.appendSet(col, e.String(), e.args...)
+			// stmt.setColsWithRef(ExprSet(col, e.String(), e.args...))
+			// stmt.SetCols.addParam(col, Expr(e.String(), e.args...))
 		} else {
-			stmt.SetCols.addParam(col, Expr(db.Para, val))
+			stmt.SetCols.appendEq(col, val)
+			// stmt.setColsWithRef(ExprEq(col, val))
+			// stmt.SetCols.addParam(col, Expr(db.Para, val))
 		}
 	}
 	return stmt
@@ -771,36 +841,41 @@ func (stmt *Stmt) setStruct(data interface{}) *Stmt {
 	vType := v.Type()
 	if vType.Kind() == reflect.Struct {
 
-		// numField := v.NumField()
+		var colNames []string = buildColumnsInternal(v, vType)
+		numField := v.NumField()
 		// avoid extend the slice cap which causes memory reallocation
 		// stmt.SetCols.extend(numField)
 
-		for i, il := 0, v.NumField(); i < il; i++ {
+		for i, il := 0, numField; i < il; i++ {
 			// Get column name, tag start with "pg" or the field Name
-			var colName string
-			fieldInfo := vType.Field(i)
-			if colName = fieldInfo.Tag.Get(db.Tag); colName == "" {
-				colName = vType.Field(i).Name
-			}
+			colName := colNames[i]
+			// var colName string
+			// fieldInfo := vType.Field(i)
+			// if colName = fieldInfo.Tag.Get(db.Tag); colName == "" {
+			// 	colName = vType.Field(i).Name
+			// }
 
 			// Get value
 			fieldValue := v.Field(i)
-			switch fieldValue.Kind() {
-			default:
-				stmt.SetCols.addParam(colName, Expr(db.Para, valueInterface(fieldValue, false)))
-			case reflect.Bool:
-				stmt.SetCols.addParam(colName, Expr(db.Para, fieldValue.Bool()))
-			case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
-				stmt.SetCols.addParam(colName, Expr(db.Para, fieldValue.Int()))
-			case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
-				stmt.SetCols.addParam(colName, Expr(db.Para, fieldValue.Uint()))
-			case reflect.Float32, reflect.Float64:
-				stmt.SetCols.addParam(colName, Expr(db.Para, fieldValue.Float()))
-			case reflect.Complex64, reflect.Complex128:
-				stmt.SetCols.addParam(colName, Expr(db.Para, fieldValue.Complex()))
-			case reflect.String:
-				stmt.SetCols.addParam(colName, Expr(db.Para, fieldValue.String()))
-			}
+			// stmt.setColsWithRef(ExprEq(colName, valueInterface(fieldValue, false)))
+			stmt.SetCols.appendEq(colName, valueInterface(fieldValue, false))
+			// stmt.SetCols.addParam(colName, Expr(db.Para, valueInterface(fieldValue, false)))
+			// switch fieldValue.Kind() {
+			// default:
+			// 	stmt.SetCols.addParam(colName, Expr(db.Para, valueInterface(fieldValue, false)))
+			// case reflect.Bool:
+			// 	stmt.SetCols.addParam(colName, Expr(db.Para, fieldValue.Bool()))
+			// case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
+			// 	stmt.SetCols.addParam(colName, Expr(db.Para, fieldValue.Int()))
+			// case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
+			// 	stmt.SetCols.addParam(colName, Expr(db.Para, fieldValue.Uint()))
+			// case reflect.Float32, reflect.Float64:
+			// 	stmt.SetCols.addParam(colName, Expr(db.Para, fieldValue.Float()))
+			// case reflect.Complex64, reflect.Complex128:
+			// 	stmt.SetCols.addParam(colName, Expr(db.Para, fieldValue.Complex()))
+			// case reflect.String:
+			// 	stmt.SetCols.addParam(colName, Expr(db.Para, fieldValue.String()))
+			// }
 		}
 	}
 	return stmt
@@ -815,6 +890,8 @@ func (stmt *Stmt) Set(data interface{}, args ...interface{}) *Stmt {
 		}
 	case Map:
 		stmt.setMap(data)
+	case *condExpr:
+		stmt.SetCols.appendExpr(data)
 	default:
 		// assume the input is either a struct ptr or a struct
 		stmt.setStruct(data)

@@ -203,7 +203,14 @@ func (stmt *Stmt) updateWriteTo(w *Writer) error {
 	w.WriteString("UPDATE ")
 	stmt.tableFrom[0].writeTo(w)
 	w.WriteString(" SET ")
-	stmt.SetCols.writeNameArgs(w)
+	stmt.SetCols.WriteTo(w)
+	// for i, col := range stmt.SetCols {
+	// 	col.WriteTo(w)
+	// 	if i+1 != len(stmt.SetCols) {
+	// 		w.WriteByte(',')
+	// 	}
+	// }
+	// stmt.SetCols.writeNameArgs(w)
 
 	if stmt.where.IsValid() {
 		w.WriteString(" WHERE ")

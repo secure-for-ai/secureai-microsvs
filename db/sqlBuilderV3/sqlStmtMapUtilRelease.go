@@ -46,8 +46,8 @@ func (stmt *Stmt) buildInsertColsByMap(data Map) {
 func catCondMap(ref *[]Cond, query Map, conds *condAnd) {
 	for k, v := range query {
 		cond := Expr(k, v)
-		cond.Append(" = ")
-		cond.Append(db.Para)
+		cond.appendSql(" = ")
+		cond.appendSql(db.Para)
 		// self created cond is stored in the ref
 		*ref = append(*ref, cond)
 		*conds = append(*conds, cond)

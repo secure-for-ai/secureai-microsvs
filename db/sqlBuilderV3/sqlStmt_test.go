@@ -362,6 +362,8 @@ func TestSQLStmt_Delete(t *testing.T) {
 	evalAnd()
 	sql, args, err = sqlBuilderV3.Delete(&stuStruct, eqCond).Gen(w)
 	evalAnd()
+	sql, args, err = sqlBuilderV3.Delete(&stuStruct).Where("uid = ??", uid).And("username = ?", "Alice").Gen(w)
+	evalAnd()
 
 	evalOr := func() {
 		assert.NoError(t, err)
@@ -375,6 +377,8 @@ func TestSQLStmt_Delete(t *testing.T) {
 	sql, args, err = sqlBuilderV3.Delete(&stuStruct).Where(stuMapUid).Or(stuMapUsername).Gen(w)
 	evalOr()
 	sql, args, err = sqlBuilderV3.Delete(&stuStruct).Or(eqCond).Gen(w)
+	evalOr()
+	sql, args, err = sqlBuilderV3.Delete(&stuStruct).Where("uid = ??", uid).Or("username = ?", "Alice").Gen(w)
 	evalOr()
 
 	evalEmpty := func() {
@@ -423,14 +427,15 @@ func TestSQLStmt_Update(t *testing.T) {
 		Set("username", "??", "Alice").
 		Set("nickname", "??", "Ali").
 		Set("email", "ali@gmail.com").
-		Set("age", "??", uint64(20)).
+		Set("age", uint64(20)).
 		Set("enrolled", "??", true).
 		Set("gpa", "??", float64(3.5)).
 		Set("tokens", "??", []string{"token1", "token2"}).
 		Set("comp", "??", complex(10, 11)).
-		Set("create_time", "??", ts.Unix()).
+		Set(sqlBuilderV3.ExprEq("create_time", ts.Unix())).
 		Set("update_time", "??", ts.Unix()).
-		Where("uid = ??", uid).Gen(w)
+		Where("uid = ??", uid).
+		Gen(w)
 	evalStruct()
 
 	evalMap := func() {
@@ -485,18 +490,18 @@ func TestSQLStmt_Update(t *testing.T) {
 
 	evalIncr := func() {
 		assert.NoError(t, err)
-		assert.EqualValues(t, "UPDATE student SET uid = uid + ? WHERE uid = ?", sql)
-		assert.EqualValues(t, []interface{}{10, uid}, args)
+		assert.EqualValues(t, "UPDATE student SET username = ?,uid = uid + ? WHERE uid = ?", sql)
+		assert.EqualValues(t, []interface{}{"Alice", 10, uid}, args)
 	}
-	sql, args, err = sqlBuilderV3.Update("student").Incr("uid", 10).Where(uidEq100).Gen(w)
+	sql, args, err = sqlBuilderV3.Update("student").Set("username", "??", "Alice").Incr("uid", 10).Where(uidEq100).Gen(w)
 	evalIncr()
 
 	evalDecr := func() {
 		assert.NoError(t, err)
-		assert.EqualValues(t, "UPDATE student SET uid = uid - ? WHERE uid = ?", sql)
-		assert.EqualValues(t, []interface{}{10, uid}, args)
+		assert.EqualValues(t, "UPDATE student SET username = ?,uid = uid - ? WHERE uid = ?", sql)
+		assert.EqualValues(t, []interface{}{"Alice", 10, uid}, args)
 	}
-	sql, args, err = sqlBuilderV3.Update("student").Decr("uid", 10).Where(uidEq100).Gen(w)
+	sql, args, err = sqlBuilderV3.Update("student").Set("username", "??", "Alice").Decr("uid", 10).Where(uidEq100).Gen(w)
 	evalDecr()
 }
 
