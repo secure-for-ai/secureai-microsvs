@@ -831,10 +831,23 @@ func (stmt *Stmt) Where(query interface{}, args ...interface{}) *Stmt {
 func (stmt *Stmt) catCond(c *Cond, ref *[]Cond, OpFunc func(cond ...Cond) Cond, query interface{}, args ...interface{}) {
 	switch query := query.(type) {
 	case string:
-		cond := CondExpr(query, args...)
-		*c = OpFunc(*c, cond)
+		// assume the input query is not empty
+		cond := Expr(query, args...)
 		// self created cond is stored in the ref
 		*ref = append(*ref, cond)
+
+		if (*c).IsValid() {
+			// construct new cond with zero-copy
+			conds := condAndPool.Get().(*condAnd)
+			*conds = append(*conds, *c, cond)
+			*c = OpFunc(*conds...)
+			conds.Destroy()
+			// new *c is either And or Or cond
+			*ref = append(*ref, *c)
+		} else {
+			// *c is condEmpty{}, so replace it with new created cond
+			*c = cond
+		}
 	case Map:
 		conds := condAndPool.Get().(*condAnd) //make([]Cond, 0, len(query)+1)
 		if _, ok := (*c).(condEmpty); !ok {
@@ -847,8 +860,7 @@ func (stmt *Stmt) catCond(c *Cond, ref *[]Cond, OpFunc func(cond ...Cond) Cond, 
 			// thus store *c into the ref
 			*ref = append(*ref, *c)
 		}
-		*conds = (*conds)[:0]
-		condAndPool.Put(conds)
+		conds.Destroy()
 	case Cond:
 		conds := condAndPool.Get().(*condAnd) //make([]Cond, 0, len(args)+2)
 		if _, ok := (*c).(condEmpty); !ok {
@@ -866,8 +878,7 @@ func (stmt *Stmt) catCond(c *Cond, ref *[]Cond, OpFunc func(cond ...Cond) Cond, 
 			// thus store *c into the ref
 			*ref = append(*ref, *c)
 		}
-		*conds = (*conds)[:0]
-		condAndPool.Put(conds)
+		conds.Destroy()
 	default:
 		// TODO: not support condition type
 	}
