@@ -1,9 +1,10 @@
 package sqlBuilderV3
 
 import (
-	"bytes"
+	// "bytes"
 	"strings"
 	"sync"
+	"unsafe"
 	_ "unsafe"
 
 	// "github.com/goccy/go-reflect"
@@ -139,12 +140,12 @@ type Stmt struct {
 	// refed conds. This can avoid double free.
 	whereRef []Cond
 
-	GroupByStr *bytes.Buffer
+	GroupByStr *stringWriter
 	having     Cond
 	// tracker internal created conds. Reset() only destroy
 	// refed conds. This can avoid double free.
 	havingRef  []Cond
-	OrderByStr *bytes.Buffer
+	OrderByStr *stringWriter
 
 	Offset int
 	LimitN int
@@ -209,10 +210,10 @@ func (stmt *Stmt) Init() {
 
 	stmt.where = condEmpty{}
 	stmt.whereRef = make([]Cond, 0, 2)
-	stmt.GroupByStr = new(bytes.Buffer)
+	stmt.GroupByStr = new(stringWriter)
 	stmt.having = condEmpty{}
 	stmt.havingRef = make([]Cond, 0, 2)
-	stmt.OrderByStr = new(bytes.Buffer)
+	stmt.OrderByStr = new(stringWriter)
 
 	stmt.Offset = 0
 	stmt.LimitN = 0
@@ -288,11 +289,24 @@ func (stmt *Stmt) Destroy() {
 var structColumnCache = sync.Map{}
 
 type stringWriter struct {
-	bytes.Buffer
+	// bytes.Buffer
+	strings.Builder
+}
+
+type builderInternalType struct {
+	addr *builderInternalType
+	buf  []byte
+}
+
+func (w *stringWriter) Bytes() []byte {
+	b := (*builderInternalType)(unsafe.Pointer(w))
+	return b.buf
 }
 
 func (w *stringWriter) Reset() {
-	w.Buffer.Reset()
+	// w.Buffer.Reset()
+	b := (*builderInternalType)(unsafe.Pointer(w))
+	b.buf = b.buf[:0]
 }
 
 func (w *stringWriter) Destroy() {
@@ -300,9 +314,9 @@ func (w *stringWriter) Destroy() {
 	bufPool.Put(w)
 }
 
-func (w *stringWriter) String() string {
-	return util.FastBytesToString(w.Bytes())
-}
+// func (w *stringWriter) String() string {
+// 	return util.FastBytesToString(w.Bytes())
+// }
 
 var bufPool = sync.Pool{
 	New: func() interface{} {
@@ -1021,7 +1035,7 @@ func (stmt *Stmt) HavingOr(query interface{}, args ...interface{}) *Stmt {
 	return stmt
 }
 
-func bufferJoin(w *bytes.Buffer, elems []string, sep string) {
+func bufferJoin(w *stringWriter, elems []string, sep string) {
 	w.WriteString(elems[0])
 	for _, s := range elems[1:] {
 		w.WriteString(sep)

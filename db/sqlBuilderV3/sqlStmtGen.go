@@ -33,7 +33,8 @@ func (stmt *Stmt) Gen(w *Writer, schema ...db.Schema) (string, []interface{}, er
 	}
 
 	//reset memory of the writer
-	w.Buffer.Reset()
+	// w.Buffer.Reset()
+	w.stringWriter.Reset()
 	w.Grow(len(sql))
 
 	start := 0
