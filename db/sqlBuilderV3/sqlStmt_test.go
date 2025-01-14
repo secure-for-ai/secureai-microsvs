@@ -425,7 +425,7 @@ func TestSQLStmt_Update(t *testing.T) {
 	sql, args, err = sqlBuilderV3.Update().From(&stuStruct).
 		Set("uid", sqlBuilderV3.Expr("??", uid)).
 		Set("username", "??", "Alice").
-		Set("nickname", "??", "Ali").
+		Set("nickname", "Ali").
 		Set("email", "ali@gmail.com").
 		Set("age", uint64(20)).
 		Set("enrolled", "??", true).

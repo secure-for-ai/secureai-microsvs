@@ -805,24 +805,27 @@ func (stmt *Stmt) setExpr(col string, expr interface{}, args ...interface{}) *St
 			// set("col", "col||??", "test") => writeTo: col = col||??, args: "test"
 			// stmt.setColsWithRef(ExprSet(col, e, args...))
 			stmt.SetCols.appendSet(col, e, args...)
+			return stmt
 			// stmt.SetCols.addParam(col, Expr(e, args...))
 		} else {
 			// set("col", "test") => writeTo: col = ??, args: "test"
 			// equivalent to set("col", Para, "test")
 			// stmt.setColsWithRef(ExprEq(col, e))
-			stmt.SetCols.appendEq(col, e)
+			
+			// stmt.SetCols.appendEq(col, e)
 			// stmt.SetCols.addParam(col, Expr(db.Para, e))
 
 		}
 	case *condExpr:
 		stmt.SetCols.appendSet(col, e.String(), e.args...)
+		return stmt
 		// stmt.setColsWithRef(ExprSet(col, e.String(), e.args...))
 		// stmt.SetCols.addParam(col, expr)
 	default:
-		stmt.SetCols.appendEq(col, e)
+		// stmt.SetCols.appendEq(col, e)
 		// stmt.setColsWithRef(ExprEq(col, e))
 	}
-
+	stmt.SetCols.appendEq(col, expr)
 	return stmt
 }
 
