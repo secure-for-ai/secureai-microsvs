@@ -2,9 +2,15 @@ module github.com/secure-for-ai/secureai-microsvs
 
 go 1.23
 
+// replace (
+// 	encoding/json => github.com/goccy/go-json v0.10.4
+// // pkg.go.dev/reflect v1.19.4 => github.com/goccy/go-reflect v1.2.0
+// )
+
 require (
-	github.com/dgrijalva/jwt-go v3.2.0+incompatible
 	github.com/go-redis/redis/v8 v8.11.5
+	github.com/goccy/go-json v0.10.4
+	github.com/golang-jwt/jwt/v5 v5.2.1
 	github.com/gorilla/securecookie v1.1.1
 	github.com/gorilla/sessions v1.2.1
 	github.com/graphql-go/graphql v0.8.0
@@ -36,6 +42,5 @@ require (
 	golang.org/x/crypto v0.31.0 // indirect
 	golang.org/x/sync v0.10.0 // indirect
 	golang.org/x/text v0.21.0 // indirect
-	golang.org/x/xerrors v0.0.0-20200804184101-5ec99f83aff1 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )

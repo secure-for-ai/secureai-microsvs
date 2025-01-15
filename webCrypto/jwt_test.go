@@ -2,7 +2,7 @@ package webCrypto_test
 
 import (
 	"fmt"
-	"github.com/dgrijalva/jwt-go"
+	"github.com/golang-jwt/jwt/v5"
 	"github.com/secure-for-ai/secureai-microsvs/util"
 	"github.com/secure-for-ai/secureai-microsvs/webCrypto"
 	"github.com/stretchr/testify/assert"

@@ -1,8 +1,9 @@
 package webCrypto
 
 import (
-	"github.com/dgrijalva/jwt-go"
 	"time"
+
+	"github.com/golang-jwt/jwt/v5"
 )
 
 func GetJWTToken(data jwt.MapClaims, secret string, expire time.Duration) (token string) {
