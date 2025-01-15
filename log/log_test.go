@@ -2,8 +2,9 @@ package log_test
 
 import (
 	log2 "log"
-	"github.com/secure-for-ai/secureai-microsvs/log"
 	"testing"
+
+	"github.com/secure-for-ai/secureai-microsvs/log"
 )
 
 func TestLog(t *testing.T) {
