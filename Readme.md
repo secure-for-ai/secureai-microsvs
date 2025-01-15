@@ -37,3 +37,53 @@ runs nginx+backend+mongo all in one.
     # setup replication with single master
     rs.initiate({_id: "rs0", members: [{_id: 0, host: "localhost:27017"}] })
     ```
+
+
+### PG data upgrade
+
+```
+# $POSTGRES_USER is the old data role
+docker run --rm \
+        -e PGUSER=$POSTGRES_USER \
+        -e POSTGRES_INITDB_ARGS="-U $POSTGRES_USER" \
+        -v [local old dir]:/var/lib/postgresql/$OLD/data \
+        -v [local new dir]:/var/lib/postgresql/$NEW/data \
+        "tianon/postgres-upgrade:$OLD-to-$NEW"
+```
+
+Suppose the `pg 13` data is in `_data/postgres_13` and `pg 17` data will be
+in `_data/postgres_17`. The old data role is `test`. The command would be
+
+```
+OLD="13"
+NEW="17"
+
+OLD_DATA="./_data/postgres_13"
+NEW_DATA="./_data/postgres_17"
+
+POSTGRES_USER="test"
+POSTGRES_PASSWORD="password"
+
+docker run --rm \
+        -e PGUSER=$POSTGRES_USER \
+        -e PGPASSWORD=$POSTGRES_PASSWORD \
+        -e POSTGRES_INITDB_ARGS="-U $POSTGRES_USER" \
+        -v $OLD_DATA:/var/lib/postgresql/$OLD/data \
+        -v $NEW_DATA:/var/lib/postgresql/$NEW/data \
+        "tianon/postgres-upgrade:$OLD-to-$NEW"
+
+# specify the auth-method for `host` connections for `all` databases,
+# `all` users, and `all` addresses. If unspecified then `scram-sha-256` password
+# authentication⁠ is used 
+printf '\n' | sudo tee -a $NEW_DATA/pg_hba.conf > /dev/null
+printf 'host all all all scram-sha-256\n' | sudo tee -a $NEW_DATA/pg_hba.conf > /dev/null
+```
+
+Change the password
+
+```
+docker exec -it secureai-dev-postgres bash
+psql -U test
+ALTER USER test WITH PASSWORD 'password';
+\q
+```
