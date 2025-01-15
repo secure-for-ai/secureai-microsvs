@@ -8,7 +8,7 @@ type condAnd []Cond
 
 var _ Cond = &condAnd{}
 var condAndPool = sync.Pool{
-	New: func() interface{} {
+	New: func() any {
 		conds := make(condAnd, 0, 4)
 		return &conds
 	},

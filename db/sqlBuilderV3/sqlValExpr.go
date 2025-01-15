@@ -6,10 +6,10 @@ import (
 
 type valExpr struct {
 	sql  string
-	args []interface{}
+	args []any
 }
 
-func (expr *valExpr) Set(sql string, args ...interface{}) {
+func (expr *valExpr) Set(sql string, args ...any) {
 	expr.sql = sql
 	expr.args = append(expr.args[:0], args...)
 }
@@ -21,7 +21,7 @@ func (expr *valExpr) String() string {
 type valExprList []valExpr
 
 var valExprListPool = sync.Pool{
-	New: func() interface{} {
+	New: func() any {
 		exprList := make(valExprList, 0, 4)
 		return &exprList
 	},
@@ -47,7 +47,7 @@ func (exprList *valExprList) Destroy() {
 	valExprListPool.Put(exprList)
 }
 
-func (exprList *valExprList) SetIth(i int, sql string, args ...interface{}) {
+func (exprList *valExprList) SetIth(i int, sql string, args ...any) {
 	(*exprList)[i].Set(sql, args...)
 }
 

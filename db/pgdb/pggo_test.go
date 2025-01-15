@@ -66,7 +66,7 @@ func TestPGConn(t *testing.T) {
 		ts.Unix(),
 		ts.Unix(),
 	}
-	exStuMap := map[string]interface{}{
+	exStuMap := map[string]any{
 		"uid":         exStu.Uid,
 		"username":    exStu.Username,
 		"nickname":    exStu.Nickname,
@@ -74,7 +74,7 @@ func TestPGConn(t *testing.T) {
 		"create_time": exStu.CreateTime,
 		"update_time": exStu.UpdateTime,
 	}
-	exStuArr := [][]interface{}{{
+	exStuArr := [][]any{{
 		exStu.Uid,
 		exStu.Username,
 		exStu.Nickname,
@@ -84,8 +84,8 @@ func TestPGConn(t *testing.T) {
 	}}
 	reStu := student{}
 	var reStuSlice []student
-	var resMaps = make([]map[string]interface{}, 0, 10)
-	var resArr [][]interface{}
+	var resMaps = make([]map[string]any, 0, 10)
+	var resArr [][]any
 	ctx := context.Background()
 	conn, err := client.GetConn(ctx)
 
@@ -150,7 +150,7 @@ func TestPGTx(t *testing.T) {
 		ts.Unix(),
 		ts.Unix(),
 	}
-	exStuMap := map[string]interface{}{
+	exStuMap := map[string]any{
 		"uid":         exStu.Uid,
 		"username":    exStu.Username,
 		"nickname":    exStu.Nickname,
@@ -158,7 +158,7 @@ func TestPGTx(t *testing.T) {
 		"create_time": exStu.CreateTime,
 		"update_time": exStu.UpdateTime,
 	}
-	exStuArr := [][]interface{}{{
+	exStuArr := [][]any{{
 		exStu.Uid,
 		exStu.Username,
 		exStu.Nickname,
@@ -168,8 +168,8 @@ func TestPGTx(t *testing.T) {
 	}}
 	reStu := student{}
 	var reStuSlice []student
-	var resMaps = make([]map[string]interface{}, 0, 10)
-	var resArr [][]interface{}
+	var resMaps = make([]map[string]any, 0, 10)
+	var resArr [][]any
 	ctx := context.Background()
 	tx, err := client.Begin(ctx)
 

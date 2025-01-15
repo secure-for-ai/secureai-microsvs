@@ -8,32 +8,32 @@ import (
 
 type condExpr struct {
 	sql  *stringWriter
-	args []interface{}
+	args []any
 }
 
 var _ Cond = &condExpr{}
 var condExprPool = sync.Pool{
-	New: func() interface{} {
+	New: func() any {
 		return new(condExpr)
 	},
 }
 
 // Expr generate customize SQL
-func Expr(sql string, args ...interface{}) *condExpr {
+func Expr(sql string, args ...any) *condExpr {
 	var expr = condExprPool.Get().(*condExpr)
 	expr.sql = bufPool.Get().(*stringWriter)
 	expr.set(sql, args...)
 	return expr
 }
 
-func CondExpr(sql string, args ...interface{}) Cond {
+func CondExpr(sql string, args ...any) Cond {
 	if len(sql) == 0 {
 		return CondEmpty
 	}
 	return Expr(sql, args...)
 }
 
-func (expr *condExpr) set(sql string, args ...interface{}) {
+func (expr *condExpr) set(sql string, args ...any) {
 	expr.sql.WriteString(sql)
 	expr.args = append(expr.args[:0], args...)
 }
@@ -70,8 +70,8 @@ func (expr *condExpr) String() string {
 	return expr.sql.String()
 }
 
-func ExprInc(col string, args ...interface{}) *condExpr {
-	var para interface{} = 1
+func ExprInc(col string, args ...any) *condExpr {
+	var para any = 1
 	if len(args) > 0 {
 		para = args[0]
 	}
@@ -84,8 +84,8 @@ func ExprInc(col string, args ...interface{}) *condExpr {
 	return cond
 }
 
-func ExprDec(col string, args ...interface{}) *condExpr {
-	var para interface{} = 1
+func ExprDec(col string, args ...any) *condExpr {
+	var para any = 1
 	if len(args) > 0 {
 		para = args[0]
 	}
@@ -98,7 +98,7 @@ func ExprDec(col string, args ...interface{}) *condExpr {
 	return cond
 }
 
-func ExprSet(col string, val string, args ...interface{}) *condExpr {
+func ExprSet(col string, val string, args ...any) *condExpr {
 	cond := Expr(col, args...)
 	cond.appendSql(" = ")
 	cond.appendSql(val)
@@ -110,15 +110,15 @@ func (expr *condExpr) appendSql(sql string) {
 	expr.sql.WriteString(sql)
 }
 
-func (expr *condExpr) appendArgs(args ...interface{}) {
+func (expr *condExpr) appendArgs(args ...any) {
 	expr.args = append(expr.args, args...)
 }
 
-func (expr *condExpr) appendArg(arg interface{}) {
+func (expr *condExpr) appendArg(arg any) {
 	expr.args = append(expr.args, arg)
 }
 
-func ExprEq(sql string, arg interface{}) *condExpr {
+func ExprEq(sql string, arg any) *condExpr {
 	cond := Expr(sql, arg)
 	cond.appendSql(" = ")
 	cond.appendSql(db.Para)
@@ -134,7 +134,7 @@ func (setCols *condExpr) appendExpr(e *condExpr) {
 	setCols.appendArgs(e.args...)
 }
 
-func (setCols *condExpr) appendEq(col string, arg interface{}) {
+func (setCols *condExpr) appendEq(col string, arg any) {
 	if setCols.IsValid() {
 		setCols.appendSql(",")
 	}
@@ -144,8 +144,8 @@ func (setCols *condExpr) appendEq(col string, arg interface{}) {
 	setCols.appendArg(arg)
 }
 
-func (setCols *condExpr) appendInc(col string, args ...interface{}) {
-	var para interface{} = 1
+func (setCols *condExpr) appendInc(col string, args ...any) {
+	var para any = 1
 	if len(args) > 0 {
 		para = args[0]
 	}
@@ -161,8 +161,8 @@ func (setCols *condExpr) appendInc(col string, args ...interface{}) {
 	setCols.appendArg(para)
 }
 
-func (setCols *condExpr) appendDec(col string, args ...interface{}) {
-	var para interface{} = 1
+func (setCols *condExpr) appendDec(col string, args ...any) {
+	var para any = 1
 	if len(args) > 0 {
 		para = args[0]
 	}
@@ -178,7 +178,7 @@ func (setCols *condExpr) appendDec(col string, args ...interface{}) {
 	setCols.appendArg(para)
 }
 
-func (setCols *condExpr) appendSet(col string, val string, args ...interface{}) {
+func (setCols *condExpr) appendSet(col string, val string, args ...any) {
 	if setCols.IsValid() {
 		setCols.appendSql(",")
 	}

@@ -14,7 +14,7 @@ func GetJWTToken(data jwt.MapClaims, secret string, expire time.Duration) (token
 }
 
 func ValidateJWT(token, secret string) (jwt.MapClaims, bool) {
-	t, _ := jwt.Parse(token, func(jwtToken *jwt.Token) (interface{}, error) {
+	t, _ := jwt.Parse(token, func(jwtToken *jwt.Token) (any, error) {
 		return []byte(secret), nil
 	})
 

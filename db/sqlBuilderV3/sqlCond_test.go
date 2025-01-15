@@ -20,7 +20,7 @@ func TestEmpty(t *testing.T) {
 	sql1, args, err := sqlBuilderV3.CondToSQL(condEmpty, w)
 	assert.NoError(t, err)
 	assert.EqualValues(t, "", sql1)
-	assert.EqualValues(t, []interface{}{}, args)
+	assert.EqualValues(t, []any{}, args)
 
 	w.Reset()
 	condEmpty.WriteTo(w)
@@ -37,7 +37,7 @@ func TestExpr(t *testing.T) {
 	sql1, args, err := sqlBuilderV3.CondToSQL(cond1, w)
 	assert.NoError(t, err)
 	assert.EqualValues(t, "A < ?", sql1)
-	assert.EqualValues(t, []interface{}{1}, args)
+	assert.EqualValues(t, []any{1}, args)
 }
 
 func TestExpr_And(t *testing.T) {
@@ -45,7 +45,7 @@ func TestExpr_And(t *testing.T) {
 	sql2, args, err := sqlBuilderV3.CondToSQL(cond1And2, w)
 	assert.NoError(t, err)
 	assert.EqualValues(t, "(A < ?) AND (B = ?)", sql2)
-	assert.EqualValues(t, []interface{}{1, "hello"}, args)
+	assert.EqualValues(t, []any{1, "hello"}, args)
 
 	//test And with empty cond
 	tmpCond := cond1.And(condNull)
@@ -53,14 +53,14 @@ func TestExpr_And(t *testing.T) {
 	assert.NoError(t, err)
 	assert.EqualValues(t, cond1, tmpCond)
 	assert.EqualValues(t, "A < ?", sql2)
-	assert.EqualValues(t, []interface{}{1}, args)
+	assert.EqualValues(t, []any{1}, args)
 
 	//test nest And
 	cond1And2And3And1And2 := cond1And2.And(cond3, condNull, condNull, cond1And2)
 	sql2, args, err = sqlBuilderV3.CondToSQL(cond1And2And3And1And2, w)
 	assert.NoError(t, err)
 	assert.EqualValues(t, "(A < ?) AND (B = ?) AND (C LIKE ?) AND (A < ?) AND (B = ?)", sql2)
-	assert.EqualValues(t, []interface{}{1, "hello", "username", 1, "hello"}, args)
+	assert.EqualValues(t, []any{1, "hello", "username", 1, "hello"}, args)
 }
 
 func TestExpr_Or(t *testing.T) {
@@ -68,7 +68,7 @@ func TestExpr_Or(t *testing.T) {
 	sql2, args, err := sqlBuilderV3.CondToSQL(cond1Or2, w)
 	assert.NoError(t, err)
 	assert.EqualValues(t, "(A < ?) OR (B = ?)", sql2)
-	assert.EqualValues(t, []interface{}{1, "hello"}, args)
+	assert.EqualValues(t, []any{1, "hello"}, args)
 
 	//test Or with empty cond
 	tmpCond := cond1.Or(condNull)
@@ -76,14 +76,14 @@ func TestExpr_Or(t *testing.T) {
 	assert.NoError(t, err)
 	assert.EqualValues(t, cond1, tmpCond)
 	assert.EqualValues(t, "A < ?", sql2)
-	assert.EqualValues(t, []interface{}{1}, args)
+	assert.EqualValues(t, []any{1}, args)
 
 	//test nest And
 	cond1Or2Or3Or1Or2 := cond1Or2.Or(cond3, condNull, condNull, cond1Or2)
 	sql2, args, err = sqlBuilderV3.CondToSQL(cond1Or2Or3Or1Or2, w)
 	assert.NoError(t, err)
 	assert.EqualValues(t, "(A < ?) OR (B = ?) OR (C LIKE ?) OR (A < ?) OR (B = ?)", sql2)
-	assert.EqualValues(t, []interface{}{1, "hello", "username", 1, "hello"}, args)
+	assert.EqualValues(t, []any{1, "hello", "username", 1, "hello"}, args)
 }
 
 func TestAnd(t *testing.T) {
@@ -132,5 +132,5 @@ func TestComplex(t *testing.T) {
 	sql, args, err := sqlBuilderV3.CondToSQL(tmpCond, w)
 	assert.NoError(t, err)
 	assert.EqualValues(t, "(((A < ?) AND (B = ?)) OR ((A < ?) AND (B = ?))) AND ((A < ?) OR (C LIKE ?))", sql)
-	assert.EqualValues(t, []interface{}{1, "hello", 1, "hello", 1, "username"}, args)
+	assert.EqualValues(t, []any{1, "hello", 1, "hello", 1, "username"}, args)
 }

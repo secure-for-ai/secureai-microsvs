@@ -105,7 +105,7 @@ func (c *Client) StartSession() (mongo.Session, error) {
 }
 
 func (c *Client) WithTransaction(
-	fn func(sessCtx mongo.SessionContext) (interface{}, error)) (result interface{}, err error) {
+	fn func(sessCtx mongo.SessionContext) (any, error)) (result any, err error) {
 	var session mongo.Session
 	var ctx = context.Background()
 
@@ -134,25 +134,25 @@ func (c *Client) WithTransaction(
 	return result, err
 }
 
-func (c *Client) InsertOne(ctx context.Context, tableName string, document interface{},
+func (c *Client) InsertOne(ctx context.Context, tableName string, document any,
 	opts ...*options.InsertOneOptions) (*mongo.InsertOneResult, error) {
 	table := c.GetTable(tableName)
 	return table.InsertOne(ctx, document, opts...)
 }
 
-func (c *Client) UpdateOne(ctx context.Context, tableName string, filter, update interface{},
+func (c *Client) UpdateOne(ctx context.Context, tableName string, filter, update any,
 	opts ...*options.UpdateOptions) (*mongo.UpdateResult, error) {
 	table := c.GetTable(tableName)
 	return table.UpdateOne(ctx, filter, update, opts...)
 }
 
-func (c *Client) FindOne(ctx context.Context, tableName string, filter, result interface{},
+func (c *Client) FindOne(ctx context.Context, tableName string, filter, result any,
 	opts ...*options.FindOneOptions) error {
 	table := c.GetTable(tableName)
 	return table.FindOne(ctx, filter, opts...).Decode(result)
 }
 
-func (c *Client) DeleteOne(ctx context.Context, tableName string, filter interface{},
+func (c *Client) DeleteOne(ctx context.Context, tableName string, filter any,
 	opts ...*options.DeleteOptions) (*mongo.DeleteResult, error) {
 	table := c.GetTable(tableName)
 	return table.DeleteOne(ctx, filter, opts...)

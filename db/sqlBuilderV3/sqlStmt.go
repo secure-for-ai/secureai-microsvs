@@ -22,7 +22,7 @@ const (
 )
 
 type Columns []string
-type Map map[string]interface{}
+type Map map[string]any
 
 type Table interface {
 	GetTableName() string
@@ -35,7 +35,7 @@ type fromItem interface {
 }
 
 var fromTablePool = sync.Pool{
-	New: func() interface{} {
+	New: func() any {
 		return new(fromTable)
 	},
 }
@@ -69,7 +69,7 @@ func (from *fromTable) destroy() {
 }
 
 var fromStmtPool = sync.Pool{
-	New: func() interface{} {
+	New: func() any {
 		return new(fromStmt)
 	},
 }
@@ -138,32 +138,32 @@ type Stmt struct {
 	sqlType Type
 }
 
-func Insert(data ...interface{}) *Stmt {
+func Insert(data ...any) *Stmt {
 	return SQL().Insert(data...)
 }
 
-func InsertOne(data interface{}) *Stmt {
+func InsertOne(data any) *Stmt {
 	return SQL().InsertOne(data)
 }
 
-func InsertBulk(data interface{}) *Stmt {
+func InsertBulk(data any) *Stmt {
 	return SQL().InsertBulk(data)
 }
 
-func Delete(data ...interface{}) *Stmt {
+func Delete(data ...any) *Stmt {
 	return SQL().Delete(data...)
 }
 
-func Update(data ...interface{}) *Stmt {
+func Update(data ...any) *Stmt {
 	return SQL().Update(data...)
 }
 
-func Select(data ...interface{}) *Stmt {
+func Select(data ...any) *Stmt {
 	return SQL().Select(data...)
 }
 
 var stmtPool = sync.Pool{
-	New: func() interface{} {
+	New: func() any {
 		stmt := &Stmt{}
 		stmt.Init()
 		return stmt
@@ -265,7 +265,7 @@ func (w *stringWriter) Destroy() {
 }
 
 var bufPool = sync.Pool{
-	New: func() interface{} {
+	New: func() any {
 		return &stringWriter{}
 	},
 }
@@ -307,7 +307,7 @@ func buildColumnsInternal(v reflect.Value, vType reflect.Type) []string {
 	return tmpColNames
 
 }
-func buildColumns(colNames *[]string, column interface{}) {
+func buildColumns(colNames *[]string, column any) {
 	v := util.ReflectValue(column)
 	vType := v.Type()
 
@@ -319,7 +319,7 @@ func buildColumns(colNames *[]string, column interface{}) {
 //go:linkname valueInterface reflect.valueInterface
 func valueInterface(v reflect.Value, safe bool) any
 
-func buildValues(curData interface{}) *valExprList {
+func buildValues(curData any) *valExprList {
 	v := util.ReflectValue(curData)
 	vType := v.Type()
 	if vType.Kind() == reflect.Struct {
@@ -359,7 +359,7 @@ func buildValues(curData interface{}) *valExprList {
 }
 
 // Into sets insert table name
-func (stmt *Stmt) IntoTable(table interface{}) *Stmt {
+func (stmt *Stmt) IntoTable(table any) *Stmt {
 	switch table := table.(type) {
 	case Table:
 		stmt.tableInto = table.GetTableName()
@@ -369,7 +369,7 @@ func (stmt *Stmt) IntoTable(table interface{}) *Stmt {
 	return stmt
 }
 
-func (stmt *Stmt) IntoColumns(column interface{}, cols ...string) *Stmt {
+func (stmt *Stmt) IntoColumns(column any, cols ...string) *Stmt {
 	switch column := column.(type) {
 	case []string:
 		stmt.InsertCols = append(stmt.InsertCols, column...)
@@ -387,7 +387,7 @@ func (stmt *Stmt) IntoColumns(column interface{}, cols ...string) *Stmt {
 }
 
 // Values store the insertion data, optimized for one record and support bulk insertion as well
-func (stmt *Stmt) Values(data ...interface{}) *Stmt {
+func (stmt *Stmt) Values(data ...any) *Stmt {
 	switch len(data) {
 	case 0:
 		return stmt
@@ -400,7 +400,7 @@ func (stmt *Stmt) Values(data ...interface{}) *Stmt {
 	return stmt
 }
 
-func (stmt *Stmt) ValuesOne(data interface{}) *Stmt {
+func (stmt *Stmt) ValuesOne(data any) *Stmt {
 	if data == nil {
 		return stmt
 	}
@@ -408,7 +408,7 @@ func (stmt *Stmt) ValuesOne(data interface{}) *Stmt {
 	stmt.InsertValues.grow(1)
 	curData := data
 	switch curData := curData.(type) {
-	case []interface{}:
+	case []any:
 		InsertValues := getValExprListWithSize(len(curData))
 		for i, val := range curData {
 			if e, ok := val.(*condExpr); ok {
@@ -435,7 +435,7 @@ func (stmt *Stmt) ValuesOne(data interface{}) *Stmt {
 	return stmt
 }
 
-func (stmt *Stmt) ValuesBulk(data interface{}) *Stmt {
+func (stmt *Stmt) ValuesBulk(data any) *Stmt {
 	dataR := util.ReflectValue(data)
 	dataType := dataR.Kind()
 	if dataType != reflect.Slice && dataType != reflect.Array {
@@ -464,7 +464,7 @@ func (stmt *Stmt) valuesBulkInternal(data *reflect.Value) *Stmt {
 	for i := 0; i < dataLen; i++ {
 		curData := data.Index(i).Interface()
 		switch curData := curData.(type) {
-		case []interface{}:
+		case []any:
 			insertValues := getValExprListWithSize(len(curData))
 			for j, val := range curData {
 				if e, ok := val.(*condExpr); ok {
@@ -496,7 +496,7 @@ func (stmt *Stmt) valuesBulkInternal(data *reflect.Value) *Stmt {
 	return stmt
 }
 
-func (stmt *Stmt) SelectColumns(column interface{}, cols ...string) *Stmt {
+func (stmt *Stmt) SelectColumns(column any, cols ...string) *Stmt {
 	switch column := column.(type) {
 	case []string:
 		stmt.SelectCols = append(stmt.SelectCols, column...)
@@ -512,7 +512,7 @@ func (stmt *Stmt) SelectColumns(column interface{}, cols ...string) *Stmt {
 }
 
 // From sets from subject(can be a table name in string or a builder pointer) and its alias
-func (stmt *Stmt) From(subject interface{}, alias ...string) *Stmt {
+func (stmt *Stmt) From(subject any, alias ...string) *Stmt {
 	var from fromItem
 	switch subject := subject.(type) {
 	case *Stmt:
@@ -535,7 +535,7 @@ func (stmt *Stmt) From(subject interface{}, alias ...string) *Stmt {
 }
 
 // Insert SQL
-func (stmt *Stmt) Insert(data ...interface{}) *Stmt {
+func (stmt *Stmt) Insert(data ...any) *Stmt {
 	switch len(data) {
 	case 0:
 		break
@@ -552,7 +552,7 @@ func (stmt *Stmt) Insert(data ...interface{}) *Stmt {
 	return stmt
 }
 
-func (stmt *Stmt) InsertOne(data interface{}) *Stmt {
+func (stmt *Stmt) InsertOne(data any) *Stmt {
 	if stmt.sqlType == RawType {
 		stmt.sqlType = InsertType
 	}
@@ -562,7 +562,7 @@ func (stmt *Stmt) InsertOne(data interface{}) *Stmt {
 }
 
 // Insert SQL
-func (stmt *Stmt) InsertBulk(data interface{}) *Stmt {
+func (stmt *Stmt) InsertBulk(data any) *Stmt {
 	if stmt.sqlType == RawType {
 		stmt.sqlType = InsertType
 	}
@@ -588,7 +588,7 @@ func (stmt *Stmt) InsertBulk(data interface{}) *Stmt {
 }
 
 // Delete sets delete SQL
-func (stmt *Stmt) Delete(data ...interface{}) *Stmt {
+func (stmt *Stmt) Delete(data ...any) *Stmt {
 	l := len(data)
 	if l >= 1 {
 		stmt.From(data[0])
@@ -603,7 +603,7 @@ func (stmt *Stmt) Delete(data ...interface{}) *Stmt {
 }
 
 // Update
-func (stmt *Stmt) Update(data ...interface{}) *Stmt {
+func (stmt *Stmt) Update(data ...any) *Stmt {
 	l := len(data)
 	if l >= 1 {
 		stmt.Set(data[0])
@@ -619,7 +619,7 @@ func (stmt *Stmt) Update(data ...interface{}) *Stmt {
 }
 
 // Select SQL
-func (stmt *Stmt) Select(data ...interface{}) *Stmt {
+func (stmt *Stmt) Select(data ...any) *Stmt {
 	l := len(data)
 	if l >= 1 {
 		if _, ok := data[0].(string); !ok {
@@ -637,13 +637,13 @@ func (stmt *Stmt) Select(data ...interface{}) *Stmt {
 }
 
 // Incr Generate  "Update ... Set column = column + arg" statement
-func (stmt *Stmt) Incr(col string, args ...interface{}) *Stmt {
+func (stmt *Stmt) Incr(col string, args ...any) *Stmt {
 	stmt.SetCols.appendInc(col, args...)
 	return stmt
 }
 
 // Decr Generate  "Update ... Set column = column - arg" statement
-func (stmt *Stmt) Decr(col string, args ...interface{}) *Stmt {
+func (stmt *Stmt) Decr(col string, args ...any) *Stmt {
 	stmt.SetCols.appendDec(col, args...)
 	return stmt
 }
@@ -652,7 +652,7 @@ func (stmt *Stmt) Decr(col string, args ...interface{}) *Stmt {
 // if you want to use writeTo internal builtin functions without parameters like NOW(),
 // then you'd better to call Set(col, Expr("Now()"))
 // Todo support expr as SQLStmt
-func (stmt *Stmt) setExpr(col string, expr interface{}, args ...interface{}) *Stmt {
+func (stmt *Stmt) setExpr(col string, expr any, args ...any) *Stmt {
 	switch e := expr.(type) {
 	case string:
 		if len(args) > 0 {
@@ -685,7 +685,7 @@ func (stmt *Stmt) setMap(exprs Map) *Stmt {
 	return stmt
 }
 
-func (stmt *Stmt) setStruct(data interface{}) *Stmt {
+func (stmt *Stmt) setStruct(data any) *Stmt {
 	// check whether data is struct
 	// reflect the exact value of the data regardless of whether it's a ptr or struct
 	v := util.ReflectValue(data)
@@ -723,7 +723,7 @@ func (stmt *Stmt) setStruct(data interface{}) *Stmt {
 	return stmt
 }
 
-func (stmt *Stmt) Set(data interface{}, args ...interface{}) *Stmt {
+func (stmt *Stmt) Set(data any, args ...any) *Stmt {
 	switch data := data.(type) {
 	case string:
 		argLen := len(args)
@@ -741,13 +741,13 @@ func (stmt *Stmt) Set(data interface{}, args ...interface{}) *Stmt {
 	return stmt
 }
 
-func (stmt *Stmt) Where(query interface{}, args ...interface{}) *Stmt {
+func (stmt *Stmt) Where(query any, args ...any) *Stmt {
 	stmt.catCond(&stmt.where, &stmt.whereRef, And, query, args...)
 	return stmt
 }
 
 // concat an existing Cond and a new Cond statement with Op
-func (stmt *Stmt) catCond(c *Cond, ref *[]Cond, OpFunc func(cond ...Cond) Cond, query interface{}, args ...interface{}) {
+func (stmt *Stmt) catCond(c *Cond, ref *[]Cond, OpFunc func(cond ...Cond) Cond, query any, args ...any) {
 	switch query := query.(type) {
 	case string:
 		// assume the input query is not empty
@@ -804,13 +804,13 @@ func (stmt *Stmt) catCond(c *Cond, ref *[]Cond, OpFunc func(cond ...Cond) Cond, 
 }
 
 // And add Where & and statement
-func (stmt *Stmt) And(query interface{}, args ...interface{}) *Stmt {
+func (stmt *Stmt) And(query any, args ...any) *Stmt {
 	stmt.catCond(&stmt.where, &stmt.whereRef, And, query, args...)
 	return stmt
 }
 
 // Or add Where & Or statement
-func (stmt *Stmt) Or(query interface{}, args ...interface{}) *Stmt {
+func (stmt *Stmt) Or(query any, args ...any) *Stmt {
 	stmt.catCond(&stmt.where, &stmt.whereRef, Or, query, args...)
 	return stmt
 }
@@ -832,19 +832,19 @@ func (stmt *Stmt) GroupBy(keys ...string) *Stmt {
 }
 
 // GroupBy generate "Having conditions" statement
-func (stmt *Stmt) Having(query interface{}, args ...interface{}) *Stmt {
+func (stmt *Stmt) Having(query any, args ...any) *Stmt {
 	stmt.catCond(&stmt.having, &stmt.havingRef, And, query, args...)
 	return stmt
 }
 
 // GroupBy generate "Having conditions" statement && conditions
-func (stmt *Stmt) HavingAnd(query interface{}, args ...interface{}) *Stmt {
+func (stmt *Stmt) HavingAnd(query any, args ...any) *Stmt {
 	stmt.catCond(&stmt.having, &stmt.havingRef, And, query, args...)
 	return stmt
 }
 
 // GroupBy generate "Having conditions" statement || conditions
-func (stmt *Stmt) HavingOr(query interface{}, args ...interface{}) *Stmt {
+func (stmt *Stmt) HavingOr(query any, args ...any) *Stmt {
 	stmt.catCond(&stmt.having, &stmt.havingRef, Or, query, args...)
 	return stmt
 }

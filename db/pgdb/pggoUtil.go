@@ -68,7 +68,7 @@ func getFieldMap(t reflect.Type, rowFields []pgconn.FieldDescription) []int {
 	return tRowFieldMap
 }
 
-func StructScanOne(rows pgx.Rows, dest interface{}) error {
+func StructScanOne(rows pgx.Rows, dest any) error {
 	defer rows.Close()
 
 	// get dest ptr
@@ -97,7 +97,7 @@ func StructScanOne(rows pgx.Rows, dest interface{}) error {
 	//v := reflect.Indirect(vp)
 
 	if rows.Next() {
-		args := make([]interface{}, fieldsLen)
+		args := make([]any, fieldsLen)
 
 		for i := range fields {
 			//args[i] = v.Field(baseFieldMap[i]).Addr().Interface()
@@ -119,7 +119,7 @@ func StructScanOne(rows pgx.Rows, dest interface{}) error {
 // It is better to pre-allocate the memory for dest, which is a slice, if
 // you know the maximum number of return records,
 // so that it won't reallocate the memory of the slice.
-func StructScanSlice(rows pgx.Rows, dest interface{}) error {
+func StructScanSlice(rows pgx.Rows, dest any) error {
 	var v, vp reflect.Value
 	defer rows.Close()
 
@@ -153,7 +153,7 @@ func StructScanSlice(rows pgx.Rows, dest interface{}) error {
 	// allocate new value
 	vp = reflect.New(base)
 	v = reflect.Indirect(vp)
-	args := make([]interface{}, fieldsLen)
+	args := make([]any, fieldsLen)
 
 	for i := range fields {
 		args[i] = v.Field(baseFieldMap[i]).Addr().Interface()
@@ -173,11 +173,11 @@ func StructScanSlice(rows pgx.Rows, dest interface{}) error {
 	return nil
 }
 
-func PGMapScan(rows pgx.Rows, maps *[]map[string]interface{}) error {
+func PGMapScan(rows pgx.Rows, maps *[]map[string]any) error {
 
 	defer rows.Close()
 
-	var m map[string]interface{}
+	var m map[string]any
 	for rows.Next() {
 
 		v, err := rows.Values()
@@ -188,7 +188,7 @@ func PGMapScan(rows pgx.Rows, maps *[]map[string]interface{}) error {
 		fields := rows.FieldDescriptions()
 
 		// specific the hint size of the map in order to avoid extra memory allocation
-		m = make(map[string]interface{}, len(fields))
+		m = make(map[string]any, len(fields))
 		for i := range fields {
 			m[string(fields[i].Name)] = v[i]
 		}
@@ -199,7 +199,7 @@ func PGMapScan(rows pgx.Rows, maps *[]map[string]interface{}) error {
 	return nil
 }
 
-func PGArrayScan(rows pgx.Rows, arrays *[][]interface{}) error {
+func PGArrayScan(rows pgx.Rows, arrays *[][]any) error {
 	defer rows.Close()
 
 	for rows.Next() {

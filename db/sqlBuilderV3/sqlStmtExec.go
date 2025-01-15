@@ -17,7 +17,7 @@ import (
 
 var sqlCache = sync.Map{}
 
-func (stmt *Stmt) ExecPG(tx pgdb.PGQuerier, ctx context.Context, result ...interface{}) (int64, error) {
+func (stmt *Stmt) ExecPG(tx pgdb.PGQuerier, ctx context.Context, result ...any) (int64, error) {
 	w := NewWriter()
 	defer w.Destroy()
 	sql, args, err := stmt.Gen(w, db.SchPG)
@@ -117,13 +117,13 @@ func (stmt *Stmt) ExecPG(tx pgdb.PGQuerier, ctx context.Context, result ...inter
 			}
 
 			// handle map scan
-			if maps, ok := res.(*[]map[string]interface{}); ok {
+			if maps, ok := res.(*[]map[string]any); ok {
 				err = pgdb.PGMapScan(rows, maps)
 				goto RowClose
 			}
 
 			// handle array scan
-			if arr, ok := res.(*[][]interface{}); ok {
+			if arr, ok := res.(*[][]any); ok {
 				err = pgdb.PGArrayScan(rows, arr)
 				goto RowClose
 			}

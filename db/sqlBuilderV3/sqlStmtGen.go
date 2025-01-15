@@ -7,7 +7,7 @@ import (
 	"github.com/secure-for-ai/secureai-microsvs/db"
 )
 
-func (stmt *Stmt) Gen(w *Writer, schema ...db.Schema) (string, []interface{}, error) {
+func (stmt *Stmt) Gen(w *Writer, schema ...db.Schema) (string, []any, error) {
 	var err error
 	w.Reset()
 

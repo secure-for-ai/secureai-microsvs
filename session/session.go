@@ -38,7 +38,7 @@ type JSONSerializer struct{}
 
 // Serialize to JSON. Will err if there are unmarshalable key values
 func (s JSONSerializer) Serialize(sess *sessions.Session) ([]byte, error) {
-	m := make(map[string]interface{}, len(sess.Values))
+	m := make(map[string]any, len(sess.Values))
 	for k, v := range sess.Values {
 		ks, ok := k.(string)
 		if !ok {
@@ -51,9 +51,9 @@ func (s JSONSerializer) Serialize(sess *sessions.Session) ([]byte, error) {
 	return json.Marshal(m)
 }
 
-// Deserialize back to map[string]interface{}
+// Deserialize back to map[string]any
 func (s JSONSerializer) Deserialize(data []byte, sess *sessions.Session) error {
-	m := make(map[string]interface{})
+	m := make(map[string]any)
 	err := json.Unmarshal(data, &m)
 	if err != nil {
 		fmt.Printf("session.JSONSerializer.deserialize() Error: %v", err)
@@ -79,7 +79,7 @@ func (s GobSerializer) Serialize(sess *sessions.Session) ([]byte, error) {
 	return nil, err
 }
 
-// Deserialize back to map[interface{}]interface{}
+// Deserialize back to map[any]any
 func (s GobSerializer) Deserialize(data []byte, sess *sessions.Session) error {
 	dec := gob.NewDecoder(bytes.NewBuffer(data))
 	return dec.Decode(&sess.Values)
@@ -369,7 +369,7 @@ func (s *Collection) Get(name string) (session *sessions.Session, err error) {
 	return session, nil
 }
 
-func (s *Collection) UpdateValue(name string, key, value interface{}) error {
+func (s *Collection) UpdateValue(name string, key, value any) error {
 	session, ok := s.sessions[name]
 	if !ok {
 		return errorSessionNotExist(name)

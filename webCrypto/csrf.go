@@ -25,7 +25,7 @@ type aesGcmCSRF struct {
 	cipher Cipher
 }
 
-func NewAesGcmCSRF(key interface{}) (CSRF, error) {
+func NewAesGcmCSRF(key any) (CSRF, error) {
 	cipher, err := NewAesGcm(key)
 	if err != nil {
 		return nil, err
@@ -83,7 +83,7 @@ func (k ErrHmacCSRFKeySize) Error() string {
 	return "webCrypto/csrf: invalid hmac key size " + strconv.Itoa(int(k))
 }
 
-func NewHmacCSRF(hash func() hash.Hash, key interface{}) (CSRF, error) {
+func NewHmacCSRF(hash func() hash.Hash, key any) (CSRF, error) {
 	//if !hash.Available() {
 	//	return nil, ErrHmacCSRFNotAvailable
 	//}

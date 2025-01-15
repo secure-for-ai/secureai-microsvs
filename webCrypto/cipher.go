@@ -25,7 +25,7 @@ type aesGcmAEAD struct {
 	minEncryptLen int
 }
 
-func NewAesGcm(encKey interface{}) (Cipher, error) {
+func NewAesGcm(encKey any) (Cipher, error) {
 	var encKeyBin []byte
 	switch v := encKey.(type) {
 	case string:
@@ -108,7 +108,7 @@ func (c *aesGcmAEAD) DecryptByte(ciphertext []byte) ([]byte, error) {
 }
 
 var encryptBufPool = sync.Pool{
-	New: func() interface{} {
+	New: func() any {
 		return &bytes.Buffer{}
 	},
 }

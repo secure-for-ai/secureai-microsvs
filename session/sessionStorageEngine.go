@@ -230,15 +230,15 @@ type RedisMongoStoreEngine struct {
 }
 
 type SessValue struct {
-	Sid        int64                  `json:"sid"        bson:"sid"         pg:"sid"`
-	Uid        int64                  `json:"uid"        bson:"uid"         pg:"uid"`
-	Nonce      []byte                 `json:"nonce"      bson:"nonce"       pg:"nonce"`
-	Data       map[string]interface{} `json:"data"       bson:"data"        pg:"data"`
-	IP         net.IP                 `json:"ip"         bson:"ip"          pg:"ip"`
-	UserAgent  string                 `json:"userAgent"  bson:"user_agent"  pg:"user_agent"`
-	CreateTime int64                  `json:"createTime" bson:"create_time" pg:"create_time"`
-	UpdateTime int64                  `json:"updateTime" bson:"update_time" pg:"update_time"`
-	ExpireTime int64                  `json:"expireTime" bson:"expire_time" pg:"expire_time"`
+	Sid        int64          `json:"sid"        bson:"sid"         pg:"sid"`
+	Uid        int64          `json:"uid"        bson:"uid"         pg:"uid"`
+	Nonce      []byte         `json:"nonce"      bson:"nonce"       pg:"nonce"`
+	Data       map[string]any `json:"data"       bson:"data"        pg:"data"`
+	IP         net.IP         `json:"ip"         bson:"ip"          pg:"ip"`
+	UserAgent  string         `json:"userAgent"  bson:"user_agent"  pg:"user_agent"`
+	CreateTime int64          `json:"createTime" bson:"create_time" pg:"create_time"`
+	UpdateTime int64          `json:"updateTime" bson:"update_time" pg:"update_time"`
+	ExpireTime int64          `json:"expireTime" bson:"expire_time" pg:"expire_time"`
 }
 
 func (r *RedisMongoStoreEngine) init() error { return nil }
@@ -321,7 +321,7 @@ func (r *RedisMongoStoreEngine) save(ctx context.Context, sess *sessions.Session
 		Sid:        sess.Values["sid"].(int64),
 		Uid:        sess.Values["uid"].(int64),
 		Nonce:      sess.Values["nonce"].([]byte),
-		Data:       sess.Values["data"].(map[string]interface{}),
+		Data:       sess.Values["data"].(map[string]any),
 		IP:         sess.Values["ip"].(net.IP),
 		UserAgent:  sess.Values["userAgent"].(string),
 		CreateTime: sess.Values["createTime"].(int64),
@@ -494,7 +494,7 @@ func (r *RedisPGStoreEngine) save(ctx context.Context, sess *sessions.Session, d
 		Sid:        sess.Values["sid"].(int64),
 		Uid:        sess.Values["uid"].(int64),
 		Nonce:      sess.Values["nonce"].([]byte),
-		Data:       sess.Values["data"].(map[string]interface{}),
+		Data:       sess.Values["data"].(map[string]any),
 		IP:         sess.Values["ip"].(net.IP),
 		UserAgent:  sess.Values["userAgent"].(string),
 		CreateTime: sess.Values["createTime"].(int64),

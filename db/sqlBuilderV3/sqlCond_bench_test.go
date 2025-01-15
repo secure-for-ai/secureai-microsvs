@@ -1,7 +1,6 @@
 package sqlBuilderV3_test
 
 import (
-	// "fmt"
 	"testing"
 
 	"github.com/secure-for-ai/secureai-microsvs/db/sqlBuilderV3"
@@ -57,20 +56,20 @@ func BenchmarkExprAndAssert(b *testing.B) {
 			sql2, args, err := sqlBuilderV3.CondToSQL(cond1And2, w)
 			assert.NoError(b, err)
 			assert.EqualValues(b, "(A < ?) AND (B = ?)", sql2)
-			assert.EqualValues(b, []interface{}{1, "hello"}, args)
+			assert.EqualValues(b, []any{1, "hello"}, args)
 
 			tmpCond := sqlBuilderV3.And(cond1, condNull)
 			sql2, args, err = sqlBuilderV3.CondToSQL(tmpCond, w)
 			assert.NoError(b, err)
 			assert.EqualValues(b, cond1, tmpCond)
 			assert.EqualValues(b, "A < ?", sql2)
-			assert.EqualValues(b, []interface{}{1}, args)
+			assert.EqualValues(b, []any{1}, args)
 
 			cond1And2And3And1And2 := sqlBuilderV3.And(cond1And2, cond3, condNull, condNull, cond1And2)
 			sql2, args, err = sqlBuilderV3.CondToSQL(cond1And2And3And1And2, w)
 			assert.NoError(b, err)
 			assert.EqualValues(b, "(A < ?) AND (B = ?) AND (C LIKE ?) AND (A < ?) AND (B = ?)", sql2)
-			assert.EqualValues(b, []interface{}{1, "hello", "username", 1, "hello"}, args)
+			assert.EqualValues(b, []any{1, "hello", "username", 1, "hello"}, args)
 
 			cond1And2.Destroy()
 			cond1And2And3And1And2.Destroy()
@@ -115,20 +114,20 @@ func BenchmarkExprOrAssert(b *testing.B) {
 			sql2, args, err := sqlBuilderV3.CondToSQL(cond1Or2, w)
 			assert.NoError(b, err)
 			assert.EqualValues(b, "(A < ?) OR (B = ?)", sql2)
-			assert.EqualValues(b, []interface{}{1, "hello"}, args)
+			assert.EqualValues(b, []any{1, "hello"}, args)
 
 			tmpCond := sqlBuilderV3.Or(cond1, condNull)
 			sql2, args, err = sqlBuilderV3.CondToSQL(tmpCond, w)
 			assert.NoError(b, err)
 			assert.EqualValues(b, cond1, tmpCond)
 			assert.EqualValues(b, "A < ?", sql2)
-			assert.EqualValues(b, []interface{}{1}, args)
+			assert.EqualValues(b, []any{1}, args)
 
 			cond1Or2Or3Or1Or2 := sqlBuilderV3.Or(cond1Or2, cond3, condNull, condNull, cond1Or2)
 			sql2, args, err = sqlBuilderV3.CondToSQL(cond1Or2Or3Or1Or2, w)
 			assert.NoError(b, err)
 			assert.EqualValues(b, "(A < ?) OR (B = ?) OR (C LIKE ?) OR (A < ?) OR (B = ?)", sql2)
-			assert.EqualValues(b, []interface{}{1, "hello", "username", 1, "hello"}, args)
+			assert.EqualValues(b, []any{1, "hello", "username", 1, "hello"}, args)
 
 			cond1Or2.Destroy()
 			cond1Or2Or3Or1Or2.Destroy()
@@ -175,7 +174,7 @@ func BenchmarkCondComplexAssert(b *testing.B) {
 			sql, args, err := sqlBuilderV3.CondToSQL(condFin, w)
 			assert.NoError(b, err)
 			assert.EqualValues(b, "(((A < ?) AND (B = ?)) OR ((A < ?) AND (B = ?))) AND ((A < ?) OR (C LIKE ?))", sql)
-			assert.EqualValues(b, []interface{}{1, "hello", 1, "hello", 1, "username"}, args)
+			assert.EqualValues(b, []any{1, "hello", 1, "hello", 1, "username"}, args)
 
 			cond1And2.Destroy()
 			cond1Or3.Destroy()

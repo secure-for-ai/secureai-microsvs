@@ -12,7 +12,7 @@ import (
 //
 // n.b. JavaScript's integers are safe between -(2^53 - 1) and 2^53 - 1 because
 // they are internally represented as IEEE 754 doubles.
-func coerceInt64(value interface{}) interface{} {
+func coerceInt64(value any) any {
 	switch value := value.(type) {
 	case bool:
 		if value == true {
@@ -142,7 +142,7 @@ var Int64 = graphql.NewScalar(graphql.ScalarConfig{
 		"values. Int can represent values between -(2^31) and 2^31 - 1. ",
 	Serialize:  coerceInt64,
 	ParseValue: coerceInt64,
-	ParseLiteral: func(valueAST ast.Value) interface{} {
+	ParseLiteral: func(valueAST ast.Value) any {
 		switch valueAST := valueAST.(type) {
 		case *ast.IntValue:
 			if intValue, err := strconv.ParseInt(valueAST.Value, 10, 64); err == nil {

@@ -96,18 +96,18 @@ func GetIP(req *http.Request) (ip net.IP) {
 }
 
 // get the concrete value of
-func ReflectValue(value interface{}) reflect.Value {
+func ReflectValue(value any) reflect.Value {
 	return reflect.Indirect(reflect.ValueOf(value))
 }
 
 func init() {
 	gob.Register(net.IP{})
-	gob.Register(map[string]interface{}{})
+	gob.Register(map[string]any{})
 }
 
 func HashString(str string, algo crypto.Hash) []byte {
 	h := algo.New()
-	h.Write([]byte(str))
+	h.Write(FastStringToBytes(str))
 	return h.Sum(nil)
 }
 

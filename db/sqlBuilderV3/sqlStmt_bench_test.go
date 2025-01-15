@@ -34,7 +34,7 @@ var stuVal2 = sqlBuilderV3.Map{
 	"update_time": ts.Unix(),
 }
 
-func fastData(data interface{}) interface{} {
+func fastData(data any) any {
 	return &data
 }
 func BenchmarkSQLStmtInsertAssert(b *testing.B) {
@@ -43,9 +43,9 @@ func BenchmarkSQLStmtInsertAssert(b *testing.B) {
 	b.StartTimer()
 	b.RunParallel(func(pb *testing.PB) {
 		var sql string
-		var args []interface{}
+		var args []any
 		var err error
-		var stuInterface interface{} = stuStruct
+		var stuInterface any = stuStruct
 
 		evalSingle := func() {
 			assert.NoError(b, err)
@@ -54,8 +54,8 @@ func BenchmarkSQLStmtInsertAssert(b *testing.B) {
 		}
 
 		for pb.Next() {
-			// memory alloc is due to converting type to interface{}
-			// and Insert() need to use []interface{}
+			// memory alloc is due to converting type to any
+			// and Insert() need to use []any
 			w := sqlBuilderV3.NewWriter()
 			stmt := sqlBuilderV3.InsertOne(stuInterface)
 			sql, args, err = stmt.Gen(w)
@@ -81,7 +81,7 @@ func BenchmarkSQLStmtInsert(b *testing.B) {
 		// === RUN   BenchmarkSQLStmtInsert
 		// BenchmarkSQLStmtInsert
 		// BenchmarkSQLStmtInsert-8         1539531               745.5 ns/op             0 B/op          0 allocs/op
-		var stuInterface interface{} = stuStruct
+		var stuInterface any = stuStruct
 
 		for pb.Next() {
 			w := sqlBuilderV3.NewWriter()
@@ -100,9 +100,9 @@ func BenchmarkSQLStmtInsertOneMapInterfaceAssert(b *testing.B) {
 	b.RunParallel(func(pb *testing.PB) {
 
 		var sql string
-		var args []interface{}
+		var args []any
 		var err error
-		var stuInterface interface{} = stuVal
+		var stuInterface any = stuVal
 
 		evalSingle := func() {
 			assert.NoError(b, err)
@@ -135,7 +135,7 @@ func BenchmarkSQLStmtInsertOneMapInterface(b *testing.B) {
 		// === RUN   BenchmarkSQLStmtInsertOneMapInterface
 		// BenchmarkSQLStmtInsertOneMapInterface
 		// BenchmarkSQLStmtInsertOneMapInterface-8          1580680               762.5 ns/op             0 B/op          0 allocs/op
-		var stuInterface interface{} = stuVal
+		var stuInterface any = stuVal
 
 		for pb.Next() {
 			w := sqlBuilderV3.NewWriter()
@@ -162,9 +162,9 @@ func BenchmarkSQLStmtInsertOneInterfaceAssert(b *testing.B) {
 		// BenchmarkSQLStmtInsertOneInterface
 		// BenchmarkSQLStmtInsertOneInterface-8     2812692               387.1 ns/op             0 B/op          0 allocs/op
 		var sql string
-		var args []interface{}
+		var args []any
 		var err error
-		var stuInterface interface{} = stuStructArrExpr
+		var stuInterface any = stuStructArrExpr
 
 		evalSingle := func() {
 			assert.NoError(b, err)
@@ -189,7 +189,7 @@ func BenchmarkSQLStmtInsertOneInterface(b *testing.B) {
 	b.StartTimer()
 	b.RunParallel(func(pb *testing.PB) {
 
-		var stuInterface interface{} = stuStructArrExpr
+		var stuInterface any = stuStructArrExpr
 
 		for pb.Next() {
 			w := sqlBuilderV3.NewWriter()
@@ -207,14 +207,14 @@ func BenchmarkSQLStmtInsertBulkStructInterfaceAssert(b *testing.B) {
 	b.StartTimer()
 	b.RunParallel(func(pb *testing.PB) {
 		var sql string
-		var bulkArgs []*[]interface{}
+		var bulkArgs []*[]any
 		var err error
-		var structInterface = []interface{}{stuStruct, stuStruct}
+		var structInterface = []any{stuStruct, stuStruct}
 
 		evalBulk := func() {
 			assert.NoError(b, err)
 			assert.EqualValues(b, "INSERT INTO student (uid,username,nickname,email,age,enrolled,gpa,tokens,comp,create_time,update_time) VALUES (?,?,?,?,?,?,?,?,?,?,?)", sql)
-			assert.EqualValues(b, []*[]interface{}{&stuStructArr, &stuStructArr}, bulkArgs)
+			assert.EqualValues(b, []*[]any{&stuStructArr, &stuStructArr}, bulkArgs)
 		}
 
 		for pb.Next() {
@@ -234,12 +234,12 @@ func BenchmarkSQLStmtInsertBulkStructInterface(b *testing.B) {
 	b.ResetTimer()
 	b.StartTimer()
 	b.RunParallel(func(pb *testing.PB) {
-		// but struct in []interface{} is essential the most efficient way to insert.
+		// but struct in []any is essential the most efficient way to insert.
 		// cpu: Intel(R) Core(TM) i7-6820HQ CPU @ 2.70GHz
 		// === RUN   BenchmarkSQLStmtInsertBulkStructInterface
 		// BenchmarkSQLStmtInsertBulkStructInterface
 		// BenchmarkSQLStmtInsertBulkStructInterface-8      1573752               750.7 ns/op             0 B/op          0 allocs/op
-		structInterface := []interface{}{stuStruct, stuStruct}
+		structInterface := []any{stuStruct, stuStruct}
 		for pb.Next() {
 			w := sqlBuilderV3.NewWriter()
 			stmt := sqlBuilderV3.InsertBulk(&structInterface)
@@ -256,14 +256,14 @@ func BenchmarkSQLStmtInsertBulkStructInterfaceAssert2(b *testing.B) {
 	b.StartTimer()
 	b.RunParallel(func(pb *testing.PB) {
 		var sql string
-		var bulkArgs []*[]interface{}
+		var bulkArgs []*[]any
 		var err error
-		var structInterface interface{} = stuList
+		var structInterface any = stuList
 
 		evalBulk := func() {
 			assert.NoError(b, err)
 			assert.EqualValues(b, "INSERT INTO student (uid,username,nickname,email,age,enrolled,gpa,tokens,comp,create_time,update_time) VALUES (?,?,?,?,?,?,?,?,?,?,?)", sql)
-			assert.EqualValues(b, []*[]interface{}{&stuStructArr, &stuStructArr}, bulkArgs)
+			assert.EqualValues(b, []*[]any{&stuStructArr, &stuStructArr}, bulkArgs)
 		}
 
 		for pb.Next() {
@@ -287,7 +287,7 @@ func BenchmarkSQLStmtInsertBulkStructInterface2(b *testing.B) {
 		// === RUN   BenchmarkSQLStmtInsertBulkStructInterface2
 		// BenchmarkSQLStmtInsertBulkStructInterface2
 		// BenchmarkSQLStmtInsertBulkStructInterface2-8      600966              1683 ns/op             578 B/op          4 allocs/op
-		var structInterface interface{} = stuList
+		var structInterface any = stuList
 		for pb.Next() {
 			w := sqlBuilderV3.NewWriter()
 			stmt := sqlBuilderV3.InsertBulk(structInterface)
@@ -304,15 +304,15 @@ func BenchmarkSQLStmtInsertBulkMapInterfaceAssert(b *testing.B) {
 	b.StartTimer()
 	b.RunParallel(func(pb *testing.PB) {
 		var sql string
-		var bulkArgs []*[]interface{}
+		var bulkArgs []*[]any
 		var err error
-		var structInterface = []interface{}{stuVal, stuVal}
-		var structInterface2 = []interface{}{stuValExpr, stuValExpr}
+		var structInterface = []any{stuVal, stuVal}
+		var structInterface2 = []any{stuValExpr, stuValExpr}
 
 		evalBulk := func() {
 			assert.NoError(b, err)
 			assert.EqualValues(b, "INSERT INTO student (age,comp,create_time,email,enrolled,gpa,nickname,tokens,uid,update_time,username) VALUES (?,?,?,?,?,?,?,?,?,?,?)", sql)
-			assert.EqualValues(b, []*[]interface{}{&stuStructArrSorted, &stuStructArrSorted}, bulkArgs)
+			assert.EqualValues(b, []*[]any{&stuStructArrSorted, &stuStructArrSorted}, bulkArgs)
 		}
 
 		for pb.Next() {
@@ -337,8 +337,8 @@ func BenchmarkSQLStmtInsertBulkMapInterface(b *testing.B) {
 	b.ResetTimer()
 	b.StartTimer()
 	b.RunParallel(func(pb *testing.PB) {
-		var structInterface = []interface{}{stuVal, stuVal}
-		var structInterface2 = []interface{}{stuValExpr, stuValExpr}
+		var structInterface = []any{stuVal, stuVal}
+		var structInterface2 = []any{stuValExpr, stuValExpr}
 
 		for pb.Next() {
 			w := sqlBuilderV3.NewWriter()
@@ -359,15 +359,15 @@ func BenchmarkSQLStmtInsertBulkSliceInterfaceAssert(b *testing.B) {
 	b.StartTimer()
 	b.RunParallel(func(pb *testing.PB) {
 		var sql string
-		var bulkArgs []*[]interface{}
+		var bulkArgs []*[]any
 		var err error
-		var structInterface = []interface{}{stuStructArr, stuStructArr}
-		var structInterface2 = []interface{}{stuStructArrExpr, stuStructArrExpr}
+		var structInterface = []any{stuStructArr, stuStructArr}
+		var structInterface2 = []any{stuStructArrExpr, stuStructArrExpr}
 
 		evalBulk := func() {
 			assert.NoError(b, err)
 			assert.EqualValues(b, "INSERT INTO student VALUES (?,?,?,?,?,?,?,?,?,?,?)", sql)
-			assert.EqualValues(b, []*[]interface{}{&stuStructArr, &stuStructArr}, bulkArgs)
+			assert.EqualValues(b, []*[]any{&stuStructArr, &stuStructArr}, bulkArgs)
 		}
 
 		for pb.Next() {
@@ -392,13 +392,13 @@ func BenchmarkSQLStmtInsertBulkSliceInterface(b *testing.B) {
 	b.ResetTimer()
 	b.StartTimer()
 	b.RunParallel(func(pb *testing.PB) {
-		// but struct in []interface{} is essential the most efficient way to insert.
+		// but struct in []any is essential the most efficient way to insert.
 		// cpu: Intel(R) Core(TM) i7-6820HQ CPU @ 2.70GHz
 		// === RUN   BenchmarkSQLStmtInsertBulkStructInterface
 		// BenchmarkSQLStmtInsertBulkStructInterface
 		// BenchmarkSQLStmtInsertBulkStructInterface-8      1573752               750.7 ns/op             0 B/op          0 allocs/op
-		var structInterface = []interface{}{stuStructArr, stuStructArr}
-		var structInterface2 = []interface{}{stuStructArrExpr, stuStructArrExpr}
+		var structInterface = []any{stuStructArr, stuStructArr}
+		var structInterface2 = []any{stuStructArrExpr, stuStructArrExpr}
 		for pb.Next() {
 			w := sqlBuilderV3.NewWriter()
 			stmt := sqlBuilderV3.Insert().IntoTable("student").ValuesBulk(&structInterface)
@@ -418,25 +418,25 @@ func BenchmarkSQLStmtDeleteCondAssert(b *testing.B) {
 	b.StartTimer()
 	b.RunParallel(func(pb *testing.PB) {
 		var sql string
-		var args []interface{}
+		var args []any
 		var err error
 
 		evalStruct := func() {
 			assert.NoError(b, err)
 			assert.EqualValues(b, "DELETE FROM student WHERE uid = ?", sql)
-			assert.EqualValues(b, []interface{}{uid}, args)
+			assert.EqualValues(b, []any{uid}, args)
 		}
 
 		evalAnd := func() {
 			assert.NoError(b, err)
 			assert.EqualValues(b, "DELETE FROM student WHERE (uid = ?) AND (username = ?)", sql)
-			assert.EqualValues(b, []interface{}{uid, "Alice"}, args)
+			assert.EqualValues(b, []any{uid, "Alice"}, args)
 		}
 
 		evalOr := func() {
 			assert.NoError(b, err)
 			assert.EqualValues(b, "DELETE FROM student WHERE (uid = ?) OR (username = ?)", sql)
-			assert.EqualValues(b, []interface{}{uid, "Alice"}, args)
+			assert.EqualValues(b, []any{uid, "Alice"}, args)
 		}
 
 		for pb.Next() {
@@ -515,25 +515,25 @@ func BenchmarkSQLStmtDeleteMapAssert(b *testing.B) {
 	b.StartTimer()
 	b.RunParallel(func(pb *testing.PB) {
 		var sql string
-		var args []interface{}
+		var args []any
 		var err error
 
 		evalStruct := func() {
 			assert.NoError(b, err)
 			assert.EqualValues(b, "DELETE FROM student WHERE uid = ?", sql)
-			assert.EqualValues(b, []interface{}{uid}, args)
+			assert.EqualValues(b, []any{uid}, args)
 		}
 
 		evalAnd := func() {
 			assert.NoError(b, err)
 			assert.EqualValues(b, "DELETE FROM student WHERE (uid = ?) AND (username = ?)", sql)
-			assert.EqualValues(b, []interface{}{uid, "Alice"}, args)
+			assert.EqualValues(b, []any{uid, "Alice"}, args)
 		}
 
 		evalOr := func() {
 			assert.NoError(b, err)
 			assert.EqualValues(b, "DELETE FROM student WHERE (uid = ?) OR (username = ?)", sql)
-			assert.EqualValues(b, []interface{}{uid, "Alice"}, args)
+			assert.EqualValues(b, []any{uid, "Alice"}, args)
 		}
 
 		for pb.Next() {
@@ -594,25 +594,25 @@ func BenchmarkSQLStmtDeleteStringAssert(b *testing.B) {
 	b.StartTimer()
 	b.RunParallel(func(pb *testing.PB) {
 		var sql string
-		var args []interface{}
+		var args []any
 		var err error
 
 		evalStruct := func() {
 			assert.NoError(b, err)
 			assert.EqualValues(b, "DELETE FROM student WHERE uid = ?", sql)
-			assert.EqualValues(b, []interface{}{uid}, args)
+			assert.EqualValues(b, []any{uid}, args)
 		}
 
 		evalAnd := func() {
 			assert.NoError(b, err)
 			assert.EqualValues(b, "DELETE FROM student WHERE (uid = ?) AND (username = ?)", sql)
-			assert.EqualValues(b, []interface{}{uid, "Alice"}, args)
+			assert.EqualValues(b, []any{uid, "Alice"}, args)
 		}
 
 		evalOr := func() {
 			assert.NoError(b, err)
 			assert.EqualValues(b, "DELETE FROM student WHERE (uid = ?) OR (username = ?)", sql)
-			assert.EqualValues(b, []interface{}{uid, "Alice"}, args)
+			assert.EqualValues(b, []any{uid, "Alice"}, args)
 		}
 
 		for pb.Next() {
@@ -663,15 +663,15 @@ func BenchmarkSQLStmtUpdateAssert(b *testing.B) {
 	b.StartTimer()
 	b.RunParallel(func(pb *testing.PB) {
 		var sql string
-		var args []interface{}
+		var args []any
 		var err error
 		var uidEq100 = sqlBuilderV3.CondExpr("uid = ??", uid)
 		var usernameEqAlice = sqlBuilderV3.CondExpr("username = ??", "Alice")
-		var stuInterface interface{} = stuStruct
+		var stuInterface any = stuStruct
 		var createTime = sqlBuilderV3.ExprEq("create_time", ts.Unix())
 		var uidExpr = sqlBuilderV3.Expr("??", uid)
-		var tokens interface{} = []string{"token1", "token2"}
-		var updateTime interface{} = ts.Unix()
+		var tokens any = []string{"token1", "token2"}
+		var updateTime any = ts.Unix()
 
 		evalStruct := func() {
 			assert.NoError(b, err)
@@ -684,7 +684,7 @@ func BenchmarkSQLStmtUpdateAssert(b *testing.B) {
 		evalMap := func() {
 			assert.NoError(b, err)
 			assert.EqualValues(b, "UPDATE student SET uid = ?", sql)
-			assert.EqualValues(b, []interface{}{uid}, args)
+			assert.EqualValues(b, []any{uid}, args)
 		}
 
 		evalWhereAnd := func() {
@@ -706,13 +706,13 @@ func BenchmarkSQLStmtUpdateAssert(b *testing.B) {
 		evalIncr := func() {
 			assert.NoError(b, err)
 			assert.EqualValues(b, "UPDATE student SET username = ?,uid = uid + ? WHERE uid = ?", sql)
-			assert.EqualValues(b, []interface{}{"Alice", 10, uid}, args)
+			assert.EqualValues(b, []any{"Alice", 10, uid}, args)
 		}
 
 		evalDecr := func() {
 			assert.NoError(b, err)
 			assert.EqualValues(b, "UPDATE student SET username = ?,uid = uid - ? WHERE uid = ?", sql)
-			assert.EqualValues(b, []interface{}{"Alice", 10, uid}, args)
+			assert.EqualValues(b, []any{"Alice", 10, uid}, args)
 		}
 
 		for pb.Next() {
@@ -784,11 +784,11 @@ func BenchmarkSQLStmtUpdate(b *testing.B) {
 
 		var uidEq100 = sqlBuilderV3.CondExpr("uid = ??", uid)
 		var usernameEqAlice = sqlBuilderV3.CondExpr("username = ??", "Alice")
-		var stuInterface interface{} = stuStruct
+		var stuInterface any = stuStruct
 		var createTime = sqlBuilderV3.ExprEq("create_time", ts.Unix())
 		var uidExpr = sqlBuilderV3.Expr("??", uid)
-		var tokens interface{} = []string{"token1", "token2"}
-		var updateTime interface{} = ts.Unix()
+		var tokens any = []string{"token1", "token2"}
+		var updateTime any = ts.Unix()
 
 		for pb.Next() {
 			w := sqlBuilderV3.NewWriter()
@@ -847,41 +847,41 @@ func BenchmarkSQLStmtSelectAssert(b *testing.B) {
 	b.StartTimer()
 	b.RunParallel(func(pb *testing.PB) {
 		var sql string
-		var args []interface{}
+		var args []any
 		var err error
-		var stuInterface interface{} = stuStruct
-		var stuColsStr interface{} = []string{"uid", "username", "nickname", "email", "age", "enrolled", "gpa", "tokens", "comp", "create_time", "update_time"}
+		var stuInterface any = stuStruct
+		var stuColsStr any = []string{"uid", "username", "nickname", "email", "age", "enrolled", "gpa", "tokens", "comp", "create_time", "update_time"}
 		var uidEq100 = sqlBuilderV3.Expr("uid = ??", 100)
 		var usernameEqAlice = sqlBuilderV3.Expr("username = ??", "Alice")
 
 		evalStruct := func() {
 			assert.NoError(b, err)
 			assert.EqualValues(b, "SELECT uid,username,nickname,email,age,enrolled,gpa,tokens,comp,create_time,update_time FROM student WHERE uid = ?", sql)
-			assert.EqualValues(b, []interface{}{100}, args)
+			assert.EqualValues(b, []any{100}, args)
 		}
 
 		evalAnd := func() {
 			assert.NoError(b, err)
 			assert.EqualValues(b, "SELECT uid,username,nickname,email,age,enrolled,gpa,tokens,comp,create_time,update_time FROM student WHERE (uid = ?) AND (username = ?)", sql)
-			assert.EqualValues(b, []interface{}{100, "Alice"}, args)
+			assert.EqualValues(b, []any{100, "Alice"}, args)
 		}
 
 		evalAny := func() {
 			assert.NoError(b, err)
 			assert.EqualValues(b, "SELECT * FROM student", sql)
-			assert.EqualValues(b, []interface{}{}, args)
+			assert.EqualValues(b, []any{}, args)
 		}
 
 		evalAS := func() {
 			assert.NoError(b, err)
 			assert.EqualValues(b, "SELECT * FROM student AS S", sql)
-			assert.EqualValues(b, []interface{}{}, args)
+			assert.EqualValues(b, []any{}, args)
 		}
 
 		evalJoin := func() {
 			assert.NoError(b, err)
 			assert.EqualValues(b, "SELECT * FROM student,student", sql)
-			assert.EqualValues(b, []interface{}{}, args)
+			assert.EqualValues(b, []any{}, args)
 		}
 
 		for pb.Next() {
@@ -928,8 +928,8 @@ func BenchmarkSQLStmtSelect(b *testing.B) {
 	b.StartTimer()
 	b.RunParallel(func(pb *testing.PB) {
 		var uidEq100 = sqlBuilderV3.Expr("uid = ??", 100)
-		var stuColsStr interface{} = []string{"uid", "username", "nickname", "email", "age", "enrolled", "gpa", "tokens", "comp", "create_time", "update_time"}
-		var stuInterface interface{} = stuStruct
+		var stuColsStr any = []string{"uid", "username", "nickname", "email", "age", "enrolled", "gpa", "tokens", "comp", "create_time", "update_time"}
+		var stuInterface any = stuStruct
 		var usernameEqAlice = sqlBuilderV3.Expr("username = ??", "Alice")
 
 		for pb.Next() {
@@ -970,13 +970,13 @@ func BenchmarkSQLStmtOrderByAssert(b *testing.B) {
 	b.StartTimer()
 	b.RunParallel(func(pb *testing.PB) {
 		var sql string
-		var args []interface{}
+		var args []any
 		var err error
 
 		eval := func() {
 			assert.NoError(b, err)
 			assert.EqualValues(b, "SELECT * FROM student ORDER BY uid ASC, username DESC", sql)
-			assert.EqualValues(b, []interface{}{}, args)
+			assert.EqualValues(b, []any{}, args)
 		}
 
 		for pb.Next() {
@@ -1015,25 +1015,25 @@ func BenchmarkSQLStmtLimitAssert(b *testing.B) {
 	b.StartTimer()
 	b.RunParallel(func(pb *testing.PB) {
 		var sql string
-		var args []interface{}
+		var args []any
 		var err error
 
 		evalLimitOffset := func() {
 			assert.NoError(b, err)
 			assert.EqualValues(b, "SELECT * FROM student LIMIT 10 OFFSET 5", sql)
-			assert.EqualValues(b, []interface{}{}, args)
+			assert.EqualValues(b, []any{}, args)
 		}
 
 		evalLimit := func() {
 			assert.NoError(b, err)
 			assert.EqualValues(b, "SELECT * FROM student LIMIT 10", sql)
-			assert.EqualValues(b, []interface{}{}, args)
+			assert.EqualValues(b, []any{}, args)
 		}
 
 		evalLimit0 := func() {
 			assert.NoError(b, err)
 			assert.EqualValues(b, "SELECT * FROM student LIMIT 10", sql)
-			assert.EqualValues(b, []interface{}{}, args)
+			assert.EqualValues(b, []any{}, args)
 		}
 
 		for pb.Next() {
@@ -1090,33 +1090,33 @@ func BenchmarkSQLStmtGroupByHavingAssert(b *testing.B) {
 	b.StartTimer()
 	b.RunParallel(func(pb *testing.PB) {
 		var sql string
-		var args []interface{}
+		var args []any
 		var err error
-		var stuInterface interface{} = stuStruct
+		var stuInterface any = stuStruct
 		var uidGe100 = sqlBuilderV3.Expr("COUNT(uid)>??", uid)
 
 		eval := func() {
 			assert.NoError(b, err)
 			assert.EqualValues(b, "SELECT uid,username,nickname,email,age,enrolled,gpa,tokens,comp,create_time,update_time FROM student GROUP BY username HAVING COUNT(uid)>?", sql)
-			assert.EqualValues(b, []interface{}{uid}, args)
+			assert.EqualValues(b, []any{uid}, args)
 		}
 
 		evalAnd := func() {
 			assert.NoError(b, err)
 			assert.EqualValues(b, "SELECT uid,username,nickname,email,age,enrolled,gpa,tokens,comp,create_time,update_time FROM student GROUP BY username HAVING (COUNT(uid)>?) AND (COUNT(uid)>?)", sql)
-			assert.EqualValues(b, []interface{}{uid, uid}, args)
+			assert.EqualValues(b, []any{uid, uid}, args)
 		}
 
 		evalOr := func() {
 			assert.NoError(b, err)
 			assert.EqualValues(b, "SELECT uid,username,nickname,email,age,enrolled,gpa,tokens,comp,create_time,update_time FROM student GROUP BY username HAVING (COUNT(uid)>?) OR (COUNT(uid)>?)", sql)
-			assert.EqualValues(b, []interface{}{uid, uid}, args)
+			assert.EqualValues(b, []any{uid, uid}, args)
 		}
 
 		evalComplex := func() {
 			assert.NoError(b, err)
 			assert.EqualValues(b, "SELECT uid,username,nickname,email,age,enrolled,gpa,tokens,comp,create_time,update_time FROM student GROUP BY username, nickname HAVING (COUNT(uid)>?) AND (COUNT(uid)>?)", sql)
-			assert.EqualValues(b, []interface{}{uid, uid}, args)
+			assert.EqualValues(b, []any{uid, uid}, args)
 		}
 
 		for pb.Next() {
@@ -1152,7 +1152,7 @@ func BenchmarkSQLStmtGroupByHaving(b *testing.B) {
 	b.ResetTimer()
 	b.StartTimer()
 	b.RunParallel(func(pb *testing.PB) {
-		var stuInterface interface{} = stuStruct
+		var stuInterface any = stuStruct
 		var uidGe100 = sqlBuilderV3.Expr("COUNT(uid)>??", uid)
 
 		for pb.Next() {

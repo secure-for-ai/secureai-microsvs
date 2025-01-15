@@ -8,7 +8,7 @@ type condOr []Cond
 
 var _ Cond = &condOr{}
 var condOrPool = sync.Pool{
-	New: func() interface{} {
+	New: func() any {
 		conds := make(condOr, 0, 4)
 		return &conds
 	},

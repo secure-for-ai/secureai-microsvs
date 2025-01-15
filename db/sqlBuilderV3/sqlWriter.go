@@ -5,14 +5,14 @@ import (
 )
 
 var argsPool = sync.Pool{
-	New: func() interface{} {
-		args := make([]interface{}, 0, 4)
+	New: func() any {
+		args := make([]any, 0, 4)
 		return &args
 	},
 }
 
-func getArgs() *[]interface{} {
-	args := argsPool.Get().(*[]interface{})
+func getArgs() *[]any {
+	args := argsPool.Get().(*[]any)
 	*args = (*args)[:0]
 	return args
 }
@@ -20,16 +20,16 @@ func getArgs() *[]interface{} {
 // Writer implments Writer and save SQL in bytes.Buffer
 type Writer struct {
 	*stringWriter
-	args     []interface{}
-	bulkArgs []*[]interface{}
+	args     []any
+	bulkArgs []*[]any
 }
 
 var writerPool = sync.Pool{
-	New: func() interface{} {
+	New: func() any {
 		w := &Writer{
 			stringWriter: &stringWriter{},
-			args:     make([]interface{}, 0, 4),
-			bulkArgs: make([]*[]interface{}, 0, 4),
+			args:     make([]any, 0, 4),
+			bulkArgs: make([]*[]any, 0, 4),
 		}
 		w.Grow(128)
 		return w
@@ -42,21 +42,21 @@ func NewWriter() *Writer {
 }
 
 // Append appends args to Writer
-func (w *Writer) Append(args ...interface{}) {
+func (w *Writer) Append(args ...any) {
 	w.args = append(w.args, args...)
 }
 
-func (w *Writer) AppendBulk(args *[]interface{}) {
+func (w *Writer) AppendBulk(args *[]any) {
 	w.bulkArgs = append(w.bulkArgs, args)
 }
 
 // Args returns args
-func (w *Writer) Args() []interface{} {
+func (w *Writer) Args() []any {
 	return w.args
 }
 
 // Args returns args
-func (w *Writer) BulkArgs() []*[]interface{} {
+func (w *Writer) BulkArgs() []*[]any {
 	return w.bulkArgs
 }
 
