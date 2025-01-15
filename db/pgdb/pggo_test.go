@@ -34,8 +34,8 @@ func (s student) Size() int {
 func initPG() {
 	var err error
 	conf := pgdb.PGPoolConf{
-		Host:   "localhost",
-		Port:   "7000",
+		Host:   "postgres",
+		Port:   "5432",
 		DBName: "test",
 		User:   "test",
 		PW:     "password",
@@ -137,7 +137,7 @@ func TestPGConn(t *testing.T) {
 	assert.EqualValues(t, 1, affectedRow)
 }
 
-func TestPGTx(t *testing.T) {
+func TestPGTxv1(t *testing.T) {
 	initPG()
 	defer client.Close()
 
