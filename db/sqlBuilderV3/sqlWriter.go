@@ -1,10 +1,7 @@
 package sqlBuilderV3
 
 import (
-	// "bytes"
 	"sync"
-
-	// "github.com/secure-for-ai/secureai-microsvs/util"
 )
 
 var argsPool = sync.Pool{
@@ -20,22 +17,8 @@ func getArgs() *[]interface{} {
 	return args
 }
 
-// Writer defines the interface
-// type Writer interface {
-// 	io.Writer
-// 	io.StringWriter
-// 	io.ByteWriter
-// 	Append(...interface{})
-// 	String() string
-// 	Args() []interface{}
-// 	Reset()
-// }
-
-// var _ Writer = NewWriter()
-
 // Writer implments Writer and save SQL in bytes.Buffer
 type Writer struct {
-	// *bytes.Buffer
 	*stringWriter
 	args     []interface{}
 	bulkArgs []*[]interface{}
@@ -44,7 +27,6 @@ type Writer struct {
 var writerPool = sync.Pool{
 	New: func() interface{} {
 		w := &Writer{
-			// Buffer:   &bytes.Buffer{},
 			stringWriter: &stringWriter{},
 			args:     make([]interface{}, 0, 4),
 			bulkArgs: make([]*[]interface{}, 0, 4),
@@ -78,12 +60,7 @@ func (w *Writer) BulkArgs() []*[]interface{} {
 	return w.bulkArgs
 }
 
-// func (w *Writer) String() string {
-// 	return util.FastBytesToString(w.Bytes())
-// }
-
 func (w *Writer) Reset() {
-	// w.Buffer.Reset()
 	w.stringWriter.Reset()
 	w.args = w.args[:0]
 	for _, args := range w.bulkArgs {

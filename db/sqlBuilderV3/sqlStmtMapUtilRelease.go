@@ -8,7 +8,7 @@ import (
 )
 
 func (stmt *Stmt) valuesOneMap(data Map) {
-	insertValues := getValExprListWithSize(len(data)) //make([]condExpr, len(curData))
+	insertValues := getValExprListWithSize(len(data))
 	if len(stmt.InsertCols) == 0 {
 		i := 0
 		for col, val := range data {
@@ -17,7 +17,7 @@ func (stmt *Stmt) valuesOneMap(data Map) {
 			if e, ok := val.(*condExpr); ok {
 				insertValues.SetIthWithExpr(i, e)
 			} else {
-				insertValues.SetIth(i, db.Para, val) //[i].Set(db.Para, val)
+				insertValues.SetIth(i, db.Para, val)
 			}
 			i++
 		}
@@ -28,7 +28,7 @@ func (stmt *Stmt) valuesOneMap(data Map) {
 			if e, ok := val.(*condExpr); ok {
 				insertValues.SetIthWithExpr(i, e)
 			} else {
-				insertValues.SetIth(i, db.Para, val) //[i].Set(db.Para, val)
+				insertValues.SetIth(i, db.Para, val)
 			}
 			i++
 		}

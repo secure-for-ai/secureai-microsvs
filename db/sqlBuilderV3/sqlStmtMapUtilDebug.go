@@ -18,7 +18,7 @@ func (m Map) sortedKeys() []string {
 }
 
 func (stmt *Stmt) valuesOneMap(data Map) {
-	insertValues := getValExprListWithSize(len(data)) //make([]condExpr, len(data))
+	insertValues := getValExprListWithSize(len(data))
 	if len(stmt.InsertCols) == 0 {
 		for i, col := range data.sortedKeys() {
 			stmt.InsertCols = append(stmt.InsertCols, col)
@@ -26,7 +26,7 @@ func (stmt *Stmt) valuesOneMap(data Map) {
 			if e, ok := val.(*condExpr); ok {
 				insertValues.SetIthWithExpr(i, e)
 			} else {
-				insertValues.SetIth(i, db.Para, val) //[i].Set(db.Para, val)
+				insertValues.SetIth(i, db.Para, val)
 			}
 		}
 	} else {
@@ -35,7 +35,7 @@ func (stmt *Stmt) valuesOneMap(data Map) {
 			if e, ok := val.(*condExpr); ok {
 				insertValues.SetIthWithExpr(i, e)
 			} else {
-				insertValues.SetIth(i, db.Para, val) //[i].Set(db.Para, val)
+				insertValues.SetIth(i, db.Para, val)
 			}
 		}
 	}

@@ -1,14 +1,10 @@
 package sqlBuilderV3
 
 import (
-	// "bytes"
+	"reflect"
 	"strings"
 	"sync"
 	"unsafe"
-	_ "unsafe"
-
-	// "github.com/goccy/go-reflect"
-	"reflect"
 
 	"github.com/secure-for-ai/secureai-microsvs/db"
 	"github.com/secure-for-ai/secureai-microsvs/util"
@@ -33,8 +29,6 @@ type Table interface {
 }
 
 type fromItem interface {
-	// itemName() string
-	// aliasName() string
 	setAliasName(string)
 	writeTo(*Writer)
 	destroy()
@@ -57,14 +51,6 @@ func createFromTable(tableName string, alias string) fromItem {
 	from.alias = alias
 	return from
 }
-
-// func (from *fromTable) itemName() string {
-// 	return from.tableName
-// }
-
-// func (from *fromTable) aliasName() string {
-// 	return from.alias
-// }
 
 func (from *fromTable) setAliasName(name string) {
 	from.alias = name
@@ -99,14 +85,6 @@ func createFromStmt(stmt *Stmt, alias string) fromItem {
 	from.alias = alias
 	return from
 }
-
-// func (from *fromStmt) itemName() string {
-// 	return from.alias
-// }
-
-// func (from *fromStmt) aliasName() string {
-// 	return from.alias
-// }
 
 func (from *fromStmt) setAliasName(name string) {
 	from.alias = name
@@ -152,17 +130,12 @@ type Stmt struct {
 
 	InsertCols   []string
 	InsertValues valExpr2DList
-	//isInsertBulk bool
 
-	// SetCols colParams
-	SetCols *condExpr //[]*condExpr
-	// SetColsRef []*condExpr
+	SetCols *condExpr
 
 	SelectCols []string
 
 	sqlType Type
-	// insertSelect *Stmt
-	rawData []interface{}
 }
 
 func Insert(data ...interface{}) *Stmt {
@@ -220,14 +193,10 @@ func (stmt *Stmt) Init() {
 
 	stmt.InsertCols = []string{}
 	stmt.InsertValues = newValExpr2DList(2)
-	//stmt.isInsertBulk = false
-	// stmt.SetCols = colParams{}
-	stmt.SetCols = Expr("") //make([]*condExpr, 0, 4)
-	// stmt.SetColsRef = make([]*condExpr, 0, 4)
+	stmt.SetCols = Expr("")
 	stmt.SelectCols = []string{}
 
 	stmt.sqlType = RawType
-	// stmt.insertSelect = nil
 }
 
 func (stmt *Stmt) Reset() {
@@ -239,14 +208,12 @@ func (stmt *Stmt) Reset() {
 	}
 	stmt.tableFrom = stmt.tableFrom[:0]
 
-	// stmt.where.Destroy()
 	stmt.where = condEmpty{}
 	for _, cond := range stmt.whereRef {
 		cond.Destroy()
 	}
 	stmt.whereRef = stmt.whereRef[:0]
 	stmt.GroupByStr.Reset()
-	// stmt.having.Destroy()
 	stmt.having = condEmpty{}
 	for _, cond := range stmt.havingRef {
 		cond.Destroy()
@@ -260,16 +227,9 @@ func (stmt *Stmt) Reset() {
 	stmt.InsertCols = stmt.InsertCols[:0]
 	stmt.InsertValues.reset()
 	stmt.SetCols.Reset()
-	// stmt.SetCols = colParams{}
-	// stmt.SetCols = stmt.SetCols[:0]
-	// for _, expr := range stmt.SetColsRef {
-	// 	expr.Destroy()
-	// }
-	// stmt.SetColsRef = stmt.SetColsRef[:0]
 	stmt.SelectCols = stmt.SelectCols[:0]
 
 	stmt.sqlType = RawType
-	// stmt.insertSelect = nil
 }
 
 func (stmt *Stmt) Destroy() {
@@ -277,19 +237,10 @@ func (stmt *Stmt) Destroy() {
 	stmtPool.Put(stmt)
 }
 
-// TableName returns the table name
-//func (stmt *SQLStmt) TableName() string {
-//	if stmt.sqlType == InsertType {
-//		return stmt.tableIntro
-//	}
-//	return stmt.tableFrom[0].itemName()
-//}
-
 // Todo replace with the fast version of sync map
 var structColumnCache = sync.Map{}
 
 type stringWriter struct {
-	// bytes.Buffer
 	strings.Builder
 }
 
@@ -304,7 +255,6 @@ func (w *stringWriter) Bytes() []byte {
 }
 
 func (w *stringWriter) Reset() {
-	// w.Buffer.Reset()
 	b := (*builderInternalType)(unsafe.Pointer(w))
 	b.buf = b.buf[:0]
 }
@@ -313,10 +263,6 @@ func (w *stringWriter) Destroy() {
 	w.Reset()
 	bufPool.Put(w)
 }
-
-// func (w *stringWriter) String() string {
-// 	return util.FastBytesToString(w.Bytes())
-// }
 
 var bufPool = sync.Pool{
 	New: func() interface{} {
@@ -335,7 +281,7 @@ func buildColumnsInternal(v reflect.Value, vType reflect.Type) []string {
 
 	// write the column name of the struct from the cache
 	if ok {
-		// free *byte.Buffer
+		// free *stringWriter
 		w.Destroy()
 		return structColNames.([]string)
 	}
@@ -355,7 +301,7 @@ func buildColumnsInternal(v reflect.Value, vType reflect.Type) []string {
 
 	// store the column name of the struct into the cache
 	structColumnCache.Store(strings.Clone(structFullName), tmpColNames)
-	// free *byte.Buffer
+	// free *stringWriter
 	w.Destroy()
 
 	return tmpColNames
@@ -363,45 +309,9 @@ func buildColumnsInternal(v reflect.Value, vType reflect.Type) []string {
 }
 func buildColumns(colNames *[]string, column interface{}) {
 	v := util.ReflectValue(column)
-	// println(v.String(), v.Type().PkgPath())
 	vType := v.Type()
-	// println(vType.Name(), vType.PkgPath(), vType.String())
+
 	if vType.Kind() == reflect.Struct {
-		// // construct the unique name of the struct with zero-copy method
-		// w := bufPool.Get().(*stringWriter)
-		// w.WriteString(vType.PkgPath())
-		// w.WriteByte('.')
-		// w.WriteString(vType.Name())
-		// structFullName := w.String()
-		// structColNames, ok := structColumnCache.Load(structFullName)
-
-		// // write the column name of the struct from the cache
-		// if ok {
-		// 	*colNames = append(*colNames, structColNames.([]string)...)
-		// 	// free *byte.Buffer
-		// 	w.Destroy()
-		// 	return
-		// }
-
-		// // avoid extend the slice cap which causes memory reallocation
-		// numField := v.NumField()
-		// tmpColNames := make([]string, numField)
-		// for i, il := 0, numField; i < il; i++ {
-		// 	// Get column name, tag start with "pg" or the field Name
-		// 	var colName string
-		// 	fieldInfo := vType.Field(i)
-		// 	if colName = fieldInfo.Tag.Get(db.Tag); colName == "" {
-		// 		colName = fieldInfo.Name
-		// 	}
-		// 	tmpColNames[i] = colName
-		// }
-
-		// // store the column name of the struct into the cache
-		// *colNames = append(*colNames, tmpColNames...)
-		// structColumnCache.Store(strings.Clone(structFullName), tmpColNames)
-		// // free *byte.Buffer
-		// w.Destroy()
-
 		*colNames = append(*colNames, buildColumnsInternal(v, vType)...)
 	}
 }
@@ -472,9 +382,6 @@ func (stmt *Stmt) IntoColumns(column interface{}, cols ...string) *Stmt {
 		stmt.buildInsertColsByMap(column)
 	default:
 		buildColumns(&stmt.InsertCols, column)
-		// if InsertCols != nil {
-		// 	stmt.InsertCols = append(stmt.InsertCols, InsertCols...)
-		// }
 	}
 	return stmt
 }
@@ -485,9 +392,6 @@ func (stmt *Stmt) Values(data ...interface{}) *Stmt {
 	case 0:
 		return stmt
 	case 1:
-		//if len(stmt.InsertValues) >= 1 {
-		//	stmt.isInsertBulk = true
-		//}
 		stmt.ValuesOne(data[0])
 	default:
 		return stmt.ValuesBulk(data)
@@ -505,12 +409,12 @@ func (stmt *Stmt) ValuesOne(data interface{}) *Stmt {
 	curData := data
 	switch curData := curData.(type) {
 	case []interface{}:
-		InsertValues := getValExprListWithSize(len(curData)) //make([]condExpr, len(curData))
+		InsertValues := getValExprListWithSize(len(curData))
 		for i, val := range curData {
 			if e, ok := val.(*condExpr); ok {
 				InsertValues.SetIthWithExpr(i, e)
 			} else {
-				InsertValues.SetIth(i, db.Para, val) //[i].Set(db.Para, val)
+				InsertValues.SetIth(i, db.Para, val)
 			}
 		}
 		stmt.InsertValues.append(InsertValues)
@@ -518,7 +422,6 @@ func (stmt *Stmt) ValuesOne(data interface{}) *Stmt {
 		stmt.valuesOneMap(curData)
 	case *Stmt:
 		stmt.From(curData)
-		// stmt.insertSelect = curData
 	default:
 		if len(stmt.InsertCols) == 0 {
 			buildColumns(&stmt.InsertCols, curData)
@@ -547,33 +450,22 @@ func (stmt *Stmt) valuesBulkInternal(data *reflect.Value) *Stmt {
 		return stmt
 	}
 
-	//if dataLen > 1 || len(stmt.InsertValues) >= 1 {
-	//	stmt.isInsertBulk = true
-	//}
-
 	// update the insert columns
 	data0 := data.Index(0).Interface()
 	switch data0 := data0.(type) {
 	case Map:
-		// InsertCols := make([]string, 0, len(data0))
-		// InsertCols = append(InsertCols, data0.sortedKeys()...)
-		// stmt.InsertCols = InsertCols
 		stmt.buildInsertColsByMap(data0)
 	default:
 		buildColumns(&stmt.InsertCols, data0)
-		// if InsertCols != nil {
-		// 	stmt.InsertCols = append(stmt.InsertCols, InsertCols...)
-		// }
 	}
 
 	// loading the data
-	// InsertValues := make([][]condExpr, 0, dataLen)
 	stmt.InsertValues.grow(dataLen)
 	for i := 0; i < dataLen; i++ {
 		curData := data.Index(i).Interface()
 		switch curData := curData.(type) {
 		case []interface{}:
-			insertValues := getValExprListWithSize(len(curData)) //make([]condExpr, len(curData))
+			insertValues := getValExprListWithSize(len(curData))
 			for j, val := range curData {
 				if e, ok := val.(*condExpr); ok {
 					insertValues.SetIthWithExpr(j, e)
@@ -583,7 +475,7 @@ func (stmt *Stmt) valuesBulkInternal(data *reflect.Value) *Stmt {
 			}
 			stmt.InsertValues.append(insertValues)
 		case Map:
-			insertValues := getValExprListWithSize(len(curData)) //make([]condExpr, len(curData))
+			insertValues := getValExprListWithSize(len(curData))
 			for j, col := range stmt.InsertCols {
 				val := curData[col]
 				if e, ok := val.(*condExpr); ok {
@@ -593,10 +485,6 @@ func (stmt *Stmt) valuesBulkInternal(data *reflect.Value) *Stmt {
 				}
 			}
 			stmt.InsertValues.append(insertValues)
-		// curData cannot be a *stmt as curData is supposed to be a single record.
-		// case *Stmt:
-		// 	stmt.From(curData)
-		// stmt.insertSelect = curData
 		default:
 			insertValues := buildValues(curData)
 			if insertValues != nil {
@@ -604,7 +492,6 @@ func (stmt *Stmt) valuesBulkInternal(data *reflect.Value) *Stmt {
 			}
 		}
 	}
-	// stmt.InsertValues = append(stmt.InsertValues, InsertValues...)
 
 	return stmt
 }
@@ -620,9 +507,6 @@ func (stmt *Stmt) SelectColumns(column interface{}, cols ...string) *Stmt {
 		stmt.SelectCols = append(stmt.SelectCols, cols...)
 	default:
 		buildColumns(&stmt.SelectCols, column)
-		// if SelectCols != nil {
-		// 	stmt.SelectCols = append(stmt.SelectCols, SelectCols...)
-		// }
 	}
 	return stmt
 }
@@ -633,7 +517,6 @@ func (stmt *Stmt) From(subject interface{}, alias ...string) *Stmt {
 	switch subject := subject.(type) {
 	case *Stmt:
 		//subquery should be a select statement, and we only accept one select stmt
-		// stmt.tableFrom = stmt.tableFrom[:0]
 		from = createFromStmt(subject, "")
 	case Table:
 		from = createFromTable(subject.GetTableName(), "")
@@ -653,10 +536,6 @@ func (stmt *Stmt) From(subject interface{}, alias ...string) *Stmt {
 
 // Insert SQL
 func (stmt *Stmt) Insert(data ...interface{}) *Stmt {
-	// stmt.rawData = stmt.rawData[:0]
-	// stmt.rawData = append(stmt.rawData, data...)
-	// data = stmt.rawData
-
 	switch len(data) {
 	case 0:
 		break
@@ -705,18 +584,6 @@ func (stmt *Stmt) InsertBulk(data interface{}) *Stmt {
 		stmt.IntoTable(dataR.Index(0).Interface())
 	}
 
-	//switch len(data) {
-	//case 0:
-	//	break
-	//default:
-	//	// if data is a double array, you need to call IntoColumns afterwards.
-	//	// Otherwise the order of the values should be the same order of the columns in the table.
-	//	// Support Bulk Insertion
-	//	s := reflect.ValueOf(data)
-	//	s.Len()
-	//	stmt.ValuesBulk(data)
-	//	stmt.IntoTable(data[0])
-	//}
 	return stmt
 }
 
@@ -769,28 +636,15 @@ func (stmt *Stmt) Select(data ...interface{}) *Stmt {
 	return stmt
 }
 
-// func (stmt *Stmt) setColsWithRef(expr *condExpr) {
-// 	// stmt.SetCols = append(stmt.SetCols, expr)
-// 	// stmt.SetColsRef = append(stmt.SetColsRef, expr)
-// }
-
-// func (stmt *Stmt) setColsWithoutRef(expr *condExpr) {
-// 	// stmt.SetCols = append(stmt.SetCols, expr)
-// }
-
 // Incr Generate  "Update ... Set column = column + arg" statement
 func (stmt *Stmt) Incr(col string, args ...interface{}) *Stmt {
-	// stmt.setColsWithRef(ExprInc(col, args...))
 	stmt.SetCols.appendInc(col, args...)
-	// stmt.SetCols.addParam(col, Expr(col+" + "+db.Para, para))
 	return stmt
 }
 
 // Decr Generate  "Update ... Set column = column - arg" statement
 func (stmt *Stmt) Decr(col string, args ...interface{}) *Stmt {
-	// stmt.setColsWithRef(ExprDec(col, args...))
 	stmt.SetCols.appendDec(col, args...)
-	// stmt.SetCols.addParam(col, Expr(col+" - "+db.Para, para))
 	return stmt
 }
 
@@ -803,27 +657,12 @@ func (stmt *Stmt) setExpr(col string, expr interface{}, args ...interface{}) *St
 	case string:
 		if len(args) > 0 {
 			// set("col", "col||??", "test") => writeTo: col = col||??, args: "test"
-			// stmt.setColsWithRef(ExprSet(col, e, args...))
 			stmt.SetCols.appendSet(col, e, args...)
 			return stmt
-			// stmt.SetCols.addParam(col, Expr(e, args...))
-		} else {
-			// set("col", "test") => writeTo: col = ??, args: "test"
-			// equivalent to set("col", Para, "test")
-			// stmt.setColsWithRef(ExprEq(col, e))
-			
-			// stmt.SetCols.appendEq(col, e)
-			// stmt.SetCols.addParam(col, Expr(db.Para, e))
-
 		}
 	case *condExpr:
 		stmt.SetCols.appendSet(col, e.String(), e.args...)
 		return stmt
-		// stmt.setColsWithRef(ExprSet(col, e.String(), e.args...))
-		// stmt.SetCols.addParam(col, expr)
-	default:
-		// stmt.SetCols.appendEq(col, e)
-		// stmt.setColsWithRef(ExprEq(col, e))
 	}
 	stmt.SetCols.appendEq(col, expr)
 	return stmt
@@ -836,16 +675,11 @@ func (stmt *Stmt) setExpr(col string, expr interface{}, args ...interface{}) *St
 // Todo support expr as SQLStmt
 func (stmt *Stmt) setMap(exprs Map) *Stmt {
 	// avoid extend the slice cap which causes memory reallocation
-	// stmt.SetCols.extend(len(exprs))
 	for col, val := range exprs {
 		if e, ok := val.(*condExpr); ok {
 			stmt.SetCols.appendSet(col, e.String(), e.args...)
-			// stmt.setColsWithRef(ExprSet(col, e.String(), e.args...))
-			// stmt.SetCols.addParam(col, Expr(e.String(), e.args...))
 		} else {
 			stmt.SetCols.appendEq(col, val)
-			// stmt.setColsWithRef(ExprEq(col, val))
-			// stmt.SetCols.addParam(col, Expr(db.Para, val))
 		}
 	}
 	return stmt
@@ -861,22 +695,13 @@ func (stmt *Stmt) setStruct(data interface{}) *Stmt {
 		var colNames []string = buildColumnsInternal(v, vType)
 		numField := v.NumField()
 		// avoid extend the slice cap which causes memory reallocation
-		// stmt.SetCols.extend(numField)
-
 		for i, il := 0, numField; i < il; i++ {
 			// Get column name, tag start with "pg" or the field Name
 			colName := colNames[i]
-			// var colName string
-			// fieldInfo := vType.Field(i)
-			// if colName = fieldInfo.Tag.Get(db.Tag); colName == "" {
-			// 	colName = vType.Field(i).Name
-			// }
 
 			// Get value
 			fieldValue := v.Field(i)
-			// stmt.setColsWithRef(ExprEq(colName, valueInterface(fieldValue, false)))
 			stmt.SetCols.appendEq(colName, valueInterface(fieldValue, false))
-			// stmt.SetCols.addParam(colName, Expr(db.Para, valueInterface(fieldValue, false)))
 			// switch fieldValue.Kind() {
 			// default:
 			// 	stmt.SetCols.addParam(colName, Expr(db.Para, valueInterface(fieldValue, false)))
@@ -943,7 +768,7 @@ func (stmt *Stmt) catCond(c *Cond, ref *[]Cond, OpFunc func(cond ...Cond) Cond, 
 			*c = cond
 		}
 	case Map:
-		conds := condAndPool.Get().(*condAnd) //make([]Cond, 0, len(query)+1)
+		conds := condAndPool.Get().(*condAnd)
 		if _, ok := (*c).(condEmpty); !ok {
 			*conds = append(*conds, *c)
 		}
@@ -956,7 +781,7 @@ func (stmt *Stmt) catCond(c *Cond, ref *[]Cond, OpFunc func(cond ...Cond) Cond, 
 		}
 		conds.Destroy()
 	case Cond:
-		conds := condAndPool.Get().(*condAnd) //make([]Cond, 0, len(args)+2)
+		conds := condAndPool.Get().(*condAnd)
 		if _, ok := (*c).(condEmpty); !ok {
 			*conds = append(*conds, *c)
 		}
@@ -989,20 +814,6 @@ func (stmt *Stmt) Or(query interface{}, args ...interface{}) *Stmt {
 	stmt.catCond(&stmt.where, &stmt.whereRef, Or, query, args...)
 	return stmt
 }
-
-//// In generate "Where column IN (??) " statement
-//func (stmt *SQLStmt) In(column string, args ...interface{}) *SQLStmt {
-//	in := builder.In(stmt.quote(column), args...)
-//	stmt.cond = stmt.cond.And(in)
-//	return stmt
-//}
-//
-//// NotIn generate "Where column NOT IN (??) " statement
-//func (stmt *SQLStmt) NotIn(column string, args ...interface{}) *SQLStmt {
-//	notIn := builder.NotIn(stmt.quote(column), args...)
-//	stmt.cond = stmt.cond.And(notIn)
-//	return stmt
-//}
 
 // GroupBy generate "Group By keys" statement
 func (stmt *Stmt) GroupBy(keys ...string) *Stmt {
@@ -1059,7 +870,6 @@ func (stmt *Stmt) OrderBy(order ...string) *Stmt {
 	}
 
 	bufferJoin(orderByStr, order, ", ")
-	// stmt.OrderByStr += strings.Join(order, ", ") // statement.ReplaceQuote(order) pq.QuoteIdentifier()
 	return stmt
 }
 
@@ -1105,7 +915,3 @@ func (stmt *Stmt) Limit(limit int, offset ...int) *Stmt {
 	}
 	return stmt
 }
-
-// func (stmt *Stmt) SQL() (string, []interface{}) {
-// 	return "", []interface{}{}
-// }

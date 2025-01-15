@@ -33,7 +33,6 @@ func (stmt *Stmt) Gen(w *Writer, schema ...db.Schema) (string, []interface{}, er
 	}
 
 	//reset memory of the writer
-	// w.Buffer.Reset()
 	w.stringWriter.Reset()
 	w.Grow(len(sql))
 
@@ -105,9 +104,6 @@ func (stmt *Stmt) insertSelectWriteTo(w *Writer) error {
 		s.writeTo(w)
 		return nil
 	}
-	// if stmt.insertSelect != nil {
-	// 	return stmt.insertSelect.selectWriteTo(w)
-	// }
 
 	return stmt.selectWriteTo(w)
 }
@@ -116,9 +112,6 @@ func (stmt *Stmt) insertWriteTo(w *Writer) error {
 	if len(stmt.tableInto) <= 0 {
 		return ErrNoTableName
 	}
-	// if len(stmt.InsertCols) <= 0 && stmt.tableInto == "" && len(stmt.tableFrom) == 0 {
-	// 	return ErrNoColumnToInsert
-	// }
 
 	// Insert Select
 	if stmt.tableInto != "" && len(stmt.tableFrom) > 0 {
@@ -167,7 +160,7 @@ func (stmt *Stmt) insertWriteTo(w *Writer) error {
 
 		// write the rest rows
 		for _, values := range stmt.InsertValues[1:] {
-			args := getArgs() //make([]interface{}, 0, valuesLen)
+			args := getArgs()
 			for _, value := range *values {
 				*args = append(*args, value.args...)
 			}
@@ -205,13 +198,6 @@ func (stmt *Stmt) updateWriteTo(w *Writer) error {
 	stmt.tableFrom[0].writeTo(w)
 	w.WriteString(" SET ")
 	stmt.SetCols.WriteTo(w)
-	// for i, col := range stmt.SetCols {
-	// 	col.WriteTo(w)
-	// 	if i+1 != len(stmt.SetCols) {
-	// 		w.WriteByte(',')
-	// 	}
-	// }
-	// stmt.SetCols.writeNameArgs(w)
 
 	if stmt.where.IsValid() {
 		w.WriteString(" WHERE ")

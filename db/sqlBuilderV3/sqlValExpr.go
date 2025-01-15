@@ -85,9 +85,6 @@ func (list *valExpr2DList) reset() {
 	for i, il := 0, len(*list); i < il; i++ {
 		(*list)[i].Destroy()
 	}
-	// for _, val := range *list {
-	// 	val.Destroy()
-	// }
 	*list = (*list)[:0]
 }
 

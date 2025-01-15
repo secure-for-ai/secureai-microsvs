@@ -83,10 +83,6 @@ func (or *condOr) WriteTo(w *Writer) {
 		switch cond.(type) {
 		case *condAnd, *condExpr:
 			wrap = true
-			//case Eq:
-			//	wrap = (len(cond.(Eq)) > 1)
-			//case Neq:
-			//	wrap = (len(cond.(Neq)) > 1)
 		}
 
 		if wrap {

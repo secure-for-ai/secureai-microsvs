@@ -43,13 +43,6 @@ func (expr *condExpr) WriteTo(w *Writer) {
 	w.Append(expr.args...)
 }
 
-// var condPool = sync.Pool{
-// 	New: func() interface{} {
-// 		res := make([]Cond, 0, 4)
-// 		return &res
-// 	},
-// }
-
 func (expr *condExpr) And(conds ...Cond) (cond Cond) {
 	return andOne(expr, conds...)
 }

@@ -1,7 +1,6 @@
 package sqlBuilderV3
 
 import (
-	// "fmt"
 	"sync"
 )
 
@@ -84,17 +83,12 @@ func (and *condAnd) WriteTo(w *Writer) {
 		switch cond.(type) {
 		case *condOr, *condExpr:
 			wrap = true
-			//case Eq:
-			//	wrap = (len(cond.(Eq)) > 1)
-			//case Neq:
-			//	wrap = (len(cond.(Neq)) > 1)
 		}
 
 		if wrap {
 			w.WriteByte('(')
 		}
 
-		// fmt.Println(cond)
 		cond.WriteTo(w)
 
 		if wrap {
