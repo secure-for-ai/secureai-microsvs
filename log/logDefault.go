@@ -35,5 +35,5 @@ func Warning(v ...any) {}
 func Info(v ...any) {}
 
 func Error(v ...any) {
-	log.Print(append([]any{"[ERROR]"}, v...)...)
+	log.Print(append([]any{"[ERROR] "}, v...)...)
 }

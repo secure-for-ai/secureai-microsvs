@@ -38,9 +38,9 @@ func Debug(v ...any) {}
 func Warning(v ...any) {}
 
 func Info(v ...any) {
-	log.Print(append([]any{"[INFO]"}, v...)...)
+	log.Print(append([]any{"[INFO] "}, v...)...)
 }
 
 func Error(v ...any) {
-	log.Print(append([]any{"[ERROR]"}, v...)...)
+	log.Print(append([]any{"[ERROR] "}, v...)...)
 }

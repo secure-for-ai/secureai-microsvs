@@ -41,13 +41,13 @@ func Errorln(v ...any) {
 func Debug(v ...any) {}
 
 func Warning(v ...any) {
-	log.Print(append([]any{"[WARNING]"}, v...)...)
+	log.Print(append([]any{"[WARNING] "}, v...)...)
 }
 
 func Info(v ...any) {
-	log.Print(append([]any{"[INFO]"}, v...)...)
+	log.Print(append([]any{"[INFO] "}, v...)...)
 }
 
 func Error(v ...any) {
-	log.Println(append([]any{"[ERROR]"}, v...)...)
+	log.Println(append([]any{"[ERROR] "}, v...)...)
 }
