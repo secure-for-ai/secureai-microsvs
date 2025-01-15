@@ -5,7 +5,7 @@ import (
 	"context"
 	"encoding/binary"
 	"fmt"
-	"github.com/go-redis/redis/v8"
+	"github.com/redis/go-redis/v9"
 	"github.com/gorilla/sessions"
 	"github.com/secure-for-ai/secureai-microsvs/cache"
 	"github.com/secure-for-ai/secureai-microsvs/db/mongodb"
