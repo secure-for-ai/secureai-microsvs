@@ -2,8 +2,8 @@ package pgdb_test
 
 import (
 	"context"
-	"fmt"
 	"github.com/secure-for-ai/secureai-microsvs/db/pgdb"
+	"github.com/secure-for-ai/secureai-microsvs/log"
 	"github.com/secure-for-ai/secureai-microsvs/db/sqlBuilder"
 	"github.com/stretchr/testify/assert"
 	"os"
@@ -44,12 +44,8 @@ func initPG() {
 	client, err = pgdb.NewPGClient(conf)
 
 	if err != nil {
-		fmt.Println("cannot connect to postgres")
+		log.Errorln("cannot connect to postgres")
 		os.Exit(1)
-	}
-
-	if conf.Verbose {
-		fmt.Println("connect to postgres")
 	}
 }
 

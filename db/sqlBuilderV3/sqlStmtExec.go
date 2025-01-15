@@ -43,7 +43,7 @@ func (stmt *Stmt) ExecPG(tx pgdb.PGQuerier, ctx context.Context, result ...any) 
 	case InsertType:
 		// Insert Select or Insert one record
 		if len(stmt.tableFrom) > 0 || len(stmt.InsertValues) == 1 {
-			log.Debug(args...)
+			log.Debugln(args...)
 			return tx.ExecRowsAffected(ctx, sql, args...)
 		}
 
@@ -93,10 +93,10 @@ func (stmt *Stmt) ExecPG(tx pgdb.PGQuerier, ctx context.Context, result ...any) 
 		}
 		return affectedRows, errs
 	case DeleteType, UpdateType:
-		log.Debug(args...)
+		log.Debugln(args...)
 		return tx.ExecRowsAffected(ctx, sql, args...)
 	case SelectType:
-		log.Debug(args...)
+		log.Debugln(args...)
 		rows, err := tx.Query(ctx, sql, args...)
 
 		if err != nil {
