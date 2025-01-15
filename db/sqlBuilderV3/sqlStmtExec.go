@@ -5,20 +5,34 @@ import (
 	"crypto"
 	"encoding/hex"
 	"errors"
-
+	"strings"
+	"sync"
 	// "github.com/goccy/go-reflect"
+	"reflect"
+
 	"github.com/jackc/pgx/v5"
 	"github.com/secure-for-ai/secureai-microsvs/db"
 	"github.com/secure-for-ai/secureai-microsvs/db/pgdb"
 	"github.com/secure-for-ai/secureai-microsvs/util"
-	"reflect"
 )
+
+var sqlCache = sync.Map{}
 
 func (stmt *Stmt) ExecPG(tx pgdb.PGQuerier, ctx context.Context, result ...interface{}) (int64, error) {
 	w := NewWriter()
 	defer w.Destroy()
 	sql, args, err := stmt.Gen(w, db.SchPG)
 	//fmt.Println(sqlBuilder)
+
+	// Get the sql from the cache as the sql is hold by w, which is a reusable buffer
+	// pgx need to store sql in its local cache, therefore, we need to make a deep copy
+	// of the sql.
+	if val, ok := sqlCache.Load(sql); ok{
+		sql = val.(string)
+	} else {
+		sql = strings.Clone(sql)
+		sqlCache.Store(sql, sql)
+	}
 
 	// there is an error in query generation.
 	if err != nil {
@@ -34,9 +48,10 @@ func (stmt *Stmt) ExecPG(tx pgdb.PGQuerier, ctx context.Context, result ...inter
 
 		// Insert multiple rows
 
-		//ts := strconv.FormatInt(util.GetNowTimestamp(), 10)
-		//nonce, _ := util.GenerateRandomKey(8)
-		//sqlName := util.Base64EncodeToString(nonce) + ts
+		// ts := strconv.FormatInt(util.GetNowTimestamp(), 10)
+		// nonce, _ := util.GenerateRandomKey(8)
+		// sqlName := util.Base64EncodeToString(nonce) + ts
+		
 		sqlName := "sql_" + hex.EncodeToString(util.HashString(sql, crypto.SHA256))
 
 		_, err := tx.Prepare(ctx, sqlName, sql)
