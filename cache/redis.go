@@ -2,7 +2,7 @@ package cache
 
 import (
 	"context"
-	"github.com/go-redis/redis/v8"
+	"github.com/redis/go-redis/v9"
 	"log"
 	"time"
 )
@@ -24,7 +24,7 @@ func NewRedisClient(conf RedisConf) (client *RedisClient, err error) {
 		Password: conf.PW,
 		DB:       0, // use default DB
 	})
-	rdb.Context()
+
 	pong, err := rdb.Ping(context.Background()).Result()
 	if err != nil {
 		log.Fatal(err)
