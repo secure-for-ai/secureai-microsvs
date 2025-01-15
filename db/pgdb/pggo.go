@@ -3,12 +3,12 @@ package pgdb
 import (
 	"context"
 	"fmt"
-	"log"
 	"unsafe"
 
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/secure-for-ai/secureai-microsvs/log"
 )
 
 type PGQuerier interface {
@@ -61,8 +61,8 @@ func NewPGClient(conf PGPoolConf) (client *PGClient, err error) {
 		return nil, err
 	}
 	if conf.Verbose {
-		log.Println("Connected to Postgres!")
-		log.Printf("Use Database: \"%s\"\n", conf.DBName)
+		log.Info("Connected to Postgres!")
+		log.Infof("Use Database: \"%s\"\n", conf.DBName)
 	}
 
 	return (*PGClient)(unsafe.Pointer(_client)), err
