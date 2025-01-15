@@ -137,7 +137,7 @@ func TestPGConn(t *testing.T) {
 	assert.EqualValues(t, 1, affectedRow)
 }
 
-func TestPGTxv1(t *testing.T) {
+func TestPGTx(t *testing.T) {
 	initPG()
 	defer client.Close()
 
