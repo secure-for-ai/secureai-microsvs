@@ -19,10 +19,6 @@ func Infof(msg string, v ...any) {
 	log.Printf("[INFO] " + msg, v...)
 }
 
-func Errorf(msg string, v ...any) {
-	log.Printf("[ERROR] " + msg, v...)
-}
-
 // ================= Log.Println =================
 func Debugln(v ...any) {
 	log.Println(append([]any{"[DEBUG]"}, v...)...)
@@ -36,10 +32,6 @@ func Infoln(v ...any) {
 	log.Println(append([]any{"[INFO]"}, v...)...)
 }
 
-func Errorln(v ...any) {
-	log.Println(append([]any{"[ERROR]"}, v...)...)
-}
-
 // ================= Log.Print =================
 func Debug(v ...any) {
 	log.Print(append([]any{"[DEBUG] "}, v...)...)
@@ -51,8 +43,4 @@ func Warning(v ...any) {
 
 func Info(v ...any) {
 	log.Print(append([]any{"[INFO] "}, v...)...)
-}
-
-func Error(v ...any) {
-	log.Print(append([]any{"[ERROR] "}, v...)...)
 }
