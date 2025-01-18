@@ -14,8 +14,9 @@ func Fatalf(msg string, v ...any) {
 	log.Fatalf("[FATAL] " + msg, v...)
 }
 
-//go:linkname Print log.Print
-func Print(v ...any)
+func Print(v ...any) {
+	log.Print(v...)
+}
 
 // ================= Log.Println =================
 
@@ -27,8 +28,9 @@ func Fatalln(v ...any) {
 	log.Fatalln(append([]any{"[FATAL]"}, v...)...)
 }
 
-//go:linkname Printf log.Printf
-func Printf(format string, v ...any)
+func Printf(format string, v ...any) {
+	log.Printf(format, v...)
+}
 
 // ================= Log.Print =================
 func Error(v ...any) {
@@ -39,5 +41,6 @@ func Fatal(v ...any) {
 	log.Fatal(append([]any{"[FATAL] "}, v...)...)
 }
 
-//go:linkname Println log.Println
-func Println(v ...any)
+func Println(v ...any) {
+	log.Println(v...)
+}
