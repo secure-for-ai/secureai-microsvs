@@ -12,7 +12,6 @@ import (
 	"github.com/jackc/pgx/v5"
 	"github.com/secure-for-ai/secureai-microsvs/db"
 	"github.com/secure-for-ai/secureai-microsvs/db/pgdb"
-	"github.com/secure-for-ai/secureai-microsvs/log"
 	"github.com/secure-for-ai/secureai-microsvs/util"
 )
 
@@ -22,7 +21,6 @@ func (stmt *Stmt) ExecPG(tx pgdb.PGQuerier, ctx context.Context, result ...any) 
 	w := NewWriter()
 	defer w.Destroy()
 	sql, args, err := stmt.Gen(w, db.SchPG)
-	log.Debug(sql)
 
 	// Get the sql from the cache as the sql is hold by w, which is a reusable buffer
 	// pgx need to store sql in its local cache, therefore, we need to make a deep copy
@@ -43,7 +41,7 @@ func (stmt *Stmt) ExecPG(tx pgdb.PGQuerier, ctx context.Context, result ...any) 
 	case InsertType:
 		// Insert Select or Insert one record
 		if len(stmt.tableFrom) > 0 || len(stmt.InsertValues) == 1 {
-			log.Debugln(args...)
+			analyzeQuery(tx, ctx, sql, args...)
 			return tx.ExecRowsAffected(ctx, sql, args...)
 		}
 
@@ -65,7 +63,7 @@ func (stmt *Stmt) ExecPG(tx pgdb.PGQuerier, ctx context.Context, result ...any) 
 		bulkArgs := w.BulkArgs()
 		rows := len(bulkArgs)
 		for _, args := range bulkArgs {
-			log.Debug(*args...)
+			analyzeQuery(tx, ctx, sql, *args...)
 			batch.Queue(sqlName, *args...)
 		}
 
@@ -93,10 +91,10 @@ func (stmt *Stmt) ExecPG(tx pgdb.PGQuerier, ctx context.Context, result ...any) 
 		}
 		return affectedRows, errs
 	case DeleteType, UpdateType:
-		log.Debugln(args...)
+		analyzeQuery(tx, ctx, sql, args...)
 		return tx.ExecRowsAffected(ctx, sql, args...)
 	case SelectType:
-		log.Debugln(args...)
+		analyzeQuery(tx, ctx, sql, args...)
 		rows, err := tx.Query(ctx, sql, args...)
 
 		if err != nil {
