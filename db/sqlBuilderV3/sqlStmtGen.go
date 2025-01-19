@@ -22,7 +22,7 @@ func (stmt *Stmt) Gen(w *Writer, schema ...db.Schema) (string, []any, error) {
 		err = stmt.selectWriteTo(w)
 	}
 
-	sql := w.String()
+	sql := strings.Clone(w.String())
 	var index, i int
 
 	index = strings.Index(sql, db.Para)
